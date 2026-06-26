@@ -17,7 +17,7 @@ in vec3 pos;
 void main() {
   // no transformation for coordinates ==> simply "place" them
   // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
-  gl_Position = vec4(pos, 0.0f);
+  gl_Position = vec4(pos, 1.0f);
 }
 
 // end of vertex shader

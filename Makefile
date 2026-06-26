@@ -26,3 +26,7 @@ run:
 # delete / remove any leftover compiled programs ( based on system )
 clean:
 	@$(RM) $(OUTPUT)
+
+# to compile our ( triangle ) shader
+shader:
+	@./sokol-shdc --input assets/shaders/triangle.glsl --output triangle_shader.h --slang glsl430:hlsl5:metal_macos
