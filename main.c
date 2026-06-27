@@ -10,6 +10,8 @@
 #include "dependencies/sokol/sokol_gfx.h"
 // include the sokol header file --> helper functions for 'sokol_gfx.h' file
 #include "dependencies/sokol/sokol_glue.h"
+// include our shader for our triangle
+#include "triangle_shader.h"
 
 // state stucture for rendering
 static struct {
@@ -17,6 +19,8 @@ static struct {
   sg_pass_action pass_action;
   // GPU bindings for drawing --> hold data for buffers, textures and more
   sg_bindings bindings;
+  // shader, vertex layout / positioning and render settings
+  sg_pipeline pipeline;
 } state;
 
 // function related to `sapp_run` and `sapp_desc`
@@ -41,6 +45,14 @@ void init(void) {
       // place / initialise that buffer with our actual data
       .data = SG_RANGE(vertices),
   });
+
+  // create the pipeline for applying the shaders
+  state.pipeline = sg_make_pipeline(&(sg_pipeline_desc){
+      // pass in our shader
+      .shader = sg_make_shader(triangle_shader_desc(sg_query_backend())),
+      // make the GPU understand our `vertices` vertex data
+      .layout = {
+          .attrs = {[ATTR_triangle_pos].format = SG_VERTEXFORMAT_FLOAT3}}});
 
   // update the state
   // INFO: again my formatter is really weird WTF is this?
@@ -67,6 +79,26 @@ void frame(void) {
   // start the pass to display at each state
   sg_begin_pass(
       &(sg_pass){.action = state.pass_action, .swapchain = sglue_swapchain()});
+
+  // apply the pipeline that we created ==> so as to be able to render shader
+  sg_apply_pipeline(state.pipeline);
+
+  // bind the GPU buffer to handle these vertex data
+  sg_apply_bindings(&state.bindings);
+
+  // actually render the thing on our screen
+  sg_draw(
+
+      // base element
+      0,
+      // number of items
+
+      // NOTE: even though that we have 9 elements in total in our array
+      // remember that we have x, y and z ==> 3 actual usable data
+
+      3,
+      // number of intances
+      1);
 
   // finish recording commands for this pass
   sg_end_pass();

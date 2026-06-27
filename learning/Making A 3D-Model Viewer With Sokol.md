@@ -23,6 +23,7 @@ status: In-Progress
 		- [[#Some Random Notes For Triangles And Stuff]]
 		- [[#Writing The Vertex Data]]
 		- [[#Writing Shaders]]
+		- [[#Writing Drawing Part]]
 
 ---
 
@@ -760,7 +761,7 @@ in vec3 pos;
 void main() {
   // no transformation for coordinates ==> simply "place" them
   // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
-  gl_Position = vec4(pos, 0.0f);
+  gl_Position = vec4(pos, 1.0f);
 }
 
 // end of vertex shader
@@ -813,8 +814,166 @@ void main() {
 > 
 > > Its a 300 line **header file** BTW... The `triangle.glsl` was only 42 lines of *code*!
 
+- Update our `Makefile`:
+
+```bash
+# compiler to use
+CC = clang
+
+# check if we are on a Windows / Linux system
+ifeq ($(OS),Windows_NT)
+	# Windows system
+  OUTPUT = build/program.exe
+  LIBS = -lkernel32 -luser32 -lshell32 -lgdi32
+else
+	# Linux system
+  OUTPUT = build/program
+  LIBS = -lX11 -lXi -lXcursor -lGL -lasound -ldl -lm -pthread
+endif
+
+# local development ==> compiling, running and deleting
+program: compile run clean
+
+# compile the program according to system
+compile:
+	@$(CC) main.c -Wall -Wextra $(LIBS) -o $(OUTPUT)
+
+# compile the program
+run:
+	@./$(OUTPUT)
+
+# delete / remove any leftover compiled programs ( based on system )
+clean:
+	@$(RM) $(OUTPUT)
+
+# to compile our ( triangle ) shader
+shader:
+	@./sokol-shdc --input assets/shaders/triangle.glsl --output triangle_shader.h --slang glsl430:hlsl5:metal_macos
+```
+
 #### Use Inside Our C File / Program
 
+> We are now going back into our `main.c` file!
+
+- Update our `state` struct:
+
+```C
+// state stucture for rendering
+static struct {
+  // action performed during a render pass
+  sg_pass_action pass_action;
+  // GPU bindings for drawing --> hold data for buffers, textures and more
+  sg_bindings bindings;
+  // shader, vertex layout / positioning and render settings
+  sg_pipeline pipeline;
+} state;
+```
+
+- Include our `triangle_shader.h` file:
+
+```C
+// own the function implementation found in sokol's header file
+#define SOKOL_IMPL
+// Linux: using OpenGL's API to communicate with GPU
+#define SOKOL_GLCORE
+// NOTE: please read line 1154 of "our" `sokol_app.h` header file
+#define SOKOL_NO_ENTRY
+// include the sokol header file --> windowing and events
+#include "dependencies/sokol/sokol_app.h"
+// include the sokol header file --> simple GPU API wrapper - pixels, rendering
+#include "dependencies/sokol/sokol_gfx.h"
+// include the sokol header file --> helper functions for 'sokol_gfx.h' file
+#include "dependencies/sokol/sokol_glue.h"
+// include our shader for our triangle
+#include "triangle_shader.h"
+```
+
+- Write the following code after `sg_make_buffer` to *make* our shader:
+
+```C
+  // create the pipeline for applying the shaders
+  state.pipeline = sg_make_pipeline(&(sg_pipeline_desc){
+      // pass in our shader
+      .shader = sg_make_shader(triangle_shader_desc(sg_query_backend()))});
+```
+
+- Now we are going to have to create the *layout*:
+
+> [!WARNING]
+> For this bit; I recommend you to actually watch this part of the video as its a little bit more involved!
+> 
+> Here is the link to the video at that point in time: https://www.youtube.com/watch?v=FFpSEo3geL4&t=830s
+
+> [!NOTE]
+> In short, what we are going to be basically doing right now is actually tell the GPU that the data that its getting is not *junk data* and that it *needs* to do some processing with it.
+> 
+> Therefore, we are going to have to split our `vertices` **one-dimensional** array so that the *program* / *GPU* is able to get these pairs of `vec3` / `vec4` data.
+> 
+> Because remember that our `vertices` ( *again one-dimensional array* ) is just a list of floating point numbers! Hence, we are going to have actually tell what is "*good data*".
+> 
+> > *Sonna Kanji*...
+
+```C
+  // create the pipeline for applying the shaders
+  state.pipeline = sg_make_pipeline(&(sg_pipeline_desc){
+      // pass in our shader
+      .shader = sg_make_shader(triangle_shader_desc(sg_query_backend())),
+      // make the GPU understand our `vertices` vertex data
+      .layout = {
+          .attrs = {[ATTR_triangle_pos].format = SG_VERTEXFORMAT_FLOAT3}}});
+```
+
+> Basically, in terms of where we are at in the `main.c` file; we simply updated the `state.pipeline` handle.
+
+### Writing Drawing Part
+
+> [!NOTE]
+> - Wikipedia: https://en.wikipedia.org/wiki/Agnostic_(data)
+
+- Update our `frame` function like so:
+
+```C
+void frame(void) {
+  // function to display at each render state ==> called once every frame
+
+  // start the pass to display at each state
+  sg_begin_pass(
+      &(sg_pass){.action = state.pass_action, .swapchain = sglue_swapchain()});
+
+  // apply the pipeline that we created ==> so as to be able to render shader
+  sg_apply_pipeline(state.pipeline);
+
+  // bind the GPU buffer to handle these vertex data
+  sg_apply_bindings(&state.bindings);
+
+  // actually render the thing on our screen
+  sg_draw(
+
+      // base element
+      0,
+      // number of items
+
+      // NOTE: even though that we have 9 elements in total in our array
+      // remember that we have x, y and z ==> 3 actual usable data
+
+      3,
+      // number of intances
+      1);
+
+  // finish recording commands for this pass
+  sg_end_pass();
+
+  // submit / "write" all command to the GPU
+  sg_commit();
+};
+```
+
+> [!SUCCESS]
+> Running our little `make` command; I do see the triangle with my ugly green colour that I tried to guess!
+> 
+> Now, I gave an 'RGBA' colour to Claude and told it convert it into the `frag_colour` format... I then ran `make shader` and therefore, `make`... GREAT SUCCESS!
+> 
+> > It works!
 
 ---
 

@@ -32,7 +32,7 @@ out vec4 frag_colour;
 // main entry point / main function for vertex shader
 void main() {
   // INFO: hardcode colour for now ( some type of green - I think )
-  frag_colour = vec4(0.7f, 1.0f, 0.5f, 1.0);
+  frag_colour = vec4(0.051, 0.988, 0.0, 0.8);
 }
 
 // end of fragment shader
