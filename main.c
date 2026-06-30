@@ -1,6 +1,4 @@
 // own the function implementation found in sokol's header file
-#include "cglm/cam.h"
-#include "cglm/mat4.h"
 #define SOKOL_IMPL
 // Linux: using OpenGL's API to communicate with GPU
 #define SOKOL_GLCORE
@@ -91,6 +89,9 @@ void frame(void) {
   // rotation, or any sort of that stuff
   glm_mat4_identity(model_matrix);
 
+  // move the actual model 2 units back on the z-axis
+  glm_translate(model_matrix, (vec3){0.0f, 0.0f, -2.0f});
+
   // similarly, we need to do the same thing for our view matrix ==> the camera
   glm_mat4_identity(view_matrix);
 
@@ -116,7 +117,7 @@ void frame(void) {
   glm_lookat(eye, center, up, view_matrix);
 
   // field of view for our "eye"
-  float fov = 100.0f;
+  float fov = glm_rad(100.0f);
 
   // get the aspect ratio of the "dynamic" / resize-able window
   float window_width = sapp_widthf();
@@ -128,18 +129,10 @@ void frame(void) {
   float near = 0.1f;
 
   // how "far" a vertex can be before its not seen
-  float far = 0.1f;
+  float far = 100.0f;
 
   // convert the 3D world and project it on a 2D screen
   glm_perspective(fov, aspect_ratio, near, far, proj_matrix);
-
-  // combine all the "populated" matrix into one final matrix to pass to shader
-  // INFO: MVP matrix
-  mat4 mvp;
-
-  // basically matrix multiplication is going to happen here
-  // INFO: multiplies 'n' number of matrices, given array of matrices of length
-  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3, mvp);
 
   // start the pass to display at each state
   sg_begin_pass(
@@ -150,6 +143,19 @@ void frame(void) {
 
   // bind the GPU buffer to handle these vertex data
   sg_apply_bindings(&state.bindings);
+
+  // triangle parameters ( IDK what I am doing for the moment )
+  triangle_params_t params = {0};
+
+  // combine all the "populated" matrix into one final matrix to pass to shader
+  // basically matrix multiplication is going to happen here
+  // INFO: multiplies 'n' number of matrices, given array of matrices of length
+  // WARNING: not using `mvp` defined here but using one in `triangle_shader.h`
+  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3,
+                params.mvp);
+
+  // apply and use the uniforms so as to pass the data to the GPU
+  sg_apply_uniforms(UB_triangle_params, &SG_RANGE(params));
 
   // actually render the thing on our screen
   sg_draw(

@@ -1,3 +1,7 @@
+// change the type of `mvp` from `float` to `mat4` in 'triangle_shader.h' file
+@header #include "cglm/cglm.h"
+@ctype mat4 mat4
+
 /*
    NOTE: some simple notes
 
@@ -18,11 +22,19 @@ in vec3 colour;
 // need to pass that colour to `fragment_shader` ==> `vertex_shader` now has an output
 out vec3 out_vertex_shader_colour;
 
+// create uniforms ==> basically global "constants" used by ( vertex ) shader
+layout(binding=0) uniform triangle_params {
+  // get our `mvp` matrix found inside our 'main.c' file ( "from the CPU" )
+  mat4 mvp;
+};
+
 // main entry point / main function for vertex shader
 void main() {
   // no transformation for coordinates ==> simply "place" them
   // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
-  gl_Position = vec4(pos, 1.0f);
+
+  // we are now updating the position of vertices with our `mvp` matrix
+  gl_Position = mvp * vec4(pos, 1.0f);
 
   // return colour from the vertex_shader
   out_vertex_shader_colour = colour;
