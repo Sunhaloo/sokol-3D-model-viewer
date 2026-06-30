@@ -1,4 +1,6 @@
 // own the function implementation found in sokol's header file
+#include "cglm/cam.h"
+#include "cglm/mat4.h"
 #define SOKOL_IMPL
 // Linux: using OpenGL's API to communicate with GPU
 #define SOKOL_GLCORE
@@ -81,6 +83,63 @@ void init(void) {
 
 void frame(void) {
   // function to display at each render state ==> called once every frame
+
+  // define our 4x4 matrices for 3D "rendering"
+  mat4 model_matrix, view_matrix, proj_matrix;
+
+  // place the object in the middle of our screen ==> no transformation,
+  // rotation, or any sort of that stuff
+  glm_mat4_identity(model_matrix);
+
+  // similarly, we need to do the same thing for our view matrix ==> the camera
+  glm_mat4_identity(view_matrix);
+
+  // define the camera position ==> at the origin in the middle of our screen
+  // INFO: see OpenGL's coordinate system to learn more
+  vec3 eye = {0.0f, 0.0f, 0.0f};
+
+  // define the place where the camera is going to be looking at
+  /*
+   * INFO: need to look at 'z' due to the right-handed nature of OpenGL
+   *
+   * Picture showing Right-Handed ( and Left Handed ):
+   * https://perry.cz/articles/ProjectionMatrix.xhtml
+   */
+  vec3 center = {0.0f, 0.0f, -1.0f};
+
+  // where does our y-axis is located
+  // INFO: in this case its basically like in the image above ( see link )
+  // additionally, Minecraft also places its y-axis like a normal human-being!
+  vec3 up = {0.0f, 1.0f, 0.0f};
+
+  // place the "camera" at set location on the screen by updating `viewr_matrix`
+  glm_lookat(eye, center, up, view_matrix);
+
+  // field of view for our "eye"
+  float fov = 100.0f;
+
+  // get the aspect ratio of the "dynamic" / resize-able window
+  float window_width = sapp_widthf();
+  float window_height = sapp_heightf();
+
+  float aspect_ratio = window_width / window_height;
+
+  // how "near" a vertex can be before its not seen
+  float near = 0.1f;
+
+  // how "far" a vertex can be before its not seen
+  float far = 0.1f;
+
+  // convert the 3D world and project it on a 2D screen
+  glm_perspective(fov, aspect_ratio, near, far, proj_matrix);
+
+  // combine all the "populated" matrix into one final matrix to pass to shader
+  // INFO: MVP matrix
+  mat4 mvp;
+
+  // basically matrix multiplication is going to happen here
+  // INFO: multiplies 'n' number of matrices, given array of matrices of length
+  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3, mvp);
 
   // start the pass to display at each state
   sg_begin_pass(
