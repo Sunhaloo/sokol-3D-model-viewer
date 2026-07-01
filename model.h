@@ -16,4 +16,7 @@ typedef struct {
 // function signature --> returns default initialised model
 model model_defaults();
 
+// function signature --> return default "animations" settings
+void model_matrix(model *self, mat4 dest);
+
 #endif

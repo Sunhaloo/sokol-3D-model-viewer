@@ -97,32 +97,16 @@ void frame(void) {
   state.triangle.scale[0] += 0.01f * sapp_frame_duration();
 
   // define our 4x4 matrices for 3D "rendering"
-  mat4 model_matrix, view_matrix, proj_matrix;
+  mat4 model_mat, view_mat, proj_mat;
 
-  // place the object in the middle of our screen ==> no transformation,
-  // rotation, or any sort of that stuff
-  glm_mat4_identity(model_matrix);
+  // place the object in the middle of our screen
+  glm_mat4_identity(model_mat);
 
-  // move the model using the "data" from model's default function
-  glm_translate(model_matrix, state.triangle.position);
-
-  // setup the rotation for each of the axes that we have
-
-  // x-axis
-  glm_rotate(model_matrix, state.triangle.rotation[0],
-             (vec3){1.0f, 0.0f, 0.0f});
-  // y-axis
-  glm_rotate(model_matrix, state.triangle.rotation[1],
-             (vec3){0.0f, 1.0f, 0.0f});
-  // z-axis
-  glm_rotate(model_matrix, state.triangle.rotation[2],
-             (vec3){0.0f, 0.0f, 1.0f});
-
-  // set the model's scale using data from the model's default function
-  glm_scale(model_matrix, state.triangle.scale);
+  // apply our transformation, rotation and scaling to our model ==> animation
+  model_matrix(&state.triangle, model_mat);
 
   // similarly, we need to do the same thing for our view matrix ==> the camera
-  glm_mat4_identity(view_matrix);
+  glm_mat4_identity(view_mat);
 
   // define the camera position ==> at the origin in the middle of our screen
   // INFO: see OpenGL's coordinate system to learn more
@@ -143,7 +127,7 @@ void frame(void) {
   vec3 up = {0.0f, 1.0f, 0.0f};
 
   // place the "camera" at set location on the screen by updating `viewr_matrix`
-  glm_lookat(eye, center, up, view_matrix);
+  glm_lookat(eye, center, up, view_mat);
 
   // field of view for our "eye"
   float fov = glm_rad(100.0f);
@@ -161,7 +145,7 @@ void frame(void) {
   float far = 100.0f;
 
   // convert the 3D world and project it on a 2D screen
-  glm_perspective(fov, aspect_ratio, near, far, proj_matrix);
+  glm_perspective(fov, aspect_ratio, near, far, proj_mat);
 
   // start the pass to display at each state
   sg_begin_pass(
@@ -179,8 +163,7 @@ void frame(void) {
   // combine all the "populated" matrix into one final matrix to pass to shader
   // basically matrix multiplication is going to happen here
   // INFO: multiplies n number of matrices, given array of matrices of length n
-  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3,
-                params.mvp);
+  glm_mat4_mulN((mat4 *[]){&proj_mat, &view_mat, &model_mat}, 3, params.mvp);
 
   // apply and use the uniforms so as to pass the data to the GPU
   sg_apply_uniforms(UB_triangle_params, &SG_RANGE(params));

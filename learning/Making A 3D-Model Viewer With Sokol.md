@@ -24,6 +24,11 @@ status: In-Progress
 		- [[#Writing The Vertex Data]]
 		- [[#Writing Shaders]]
 		- [[#Writing Drawing Part]]
+	- [[#Third Video Tutorial]]
+		- [[#Learning A Bit About How 3D Graphics Works]]
+		- [[#Math Library For Matrix Multiplications]]
+		- [[#Understanding Application Of Uniforms]]
+		- [[#Animation of Model]]
 
 ---
 
@@ -974,6 +979,701 @@ void frame(void) {
 > Now, I gave an 'RGBA' colour to Claude and told it convert it into the `frag_colour` format... I then ran `make shader` and therefore, `make`... GREAT SUCCESS!
 > 
 > > It works!
+
+---
+
+> [!TIP]
+> Here is a little tip to *[me, myself and I](https://www.youtube.com/watch?v=bSfpSOBD30U&list=RDbSfpSOBD30U&t=45s)*!
+> 
+> So like I said above, I used an 'RGBA' colour picker online and gave it to Claude so that I can use in in our `frag_colour`.
+> 
+> Well you just need to take each *colour value* given from the 'RGBA' colour picker and then **divide** it by '255'.
+> 
+> > Obviously,  you don't need to do anything with the opacity of it...
+> 
+> Hence, you can use any solid colour *picked* from the 'RGBA' colour picker and use it for your first triangle is you are also trying this tutorial out!
+
+---
+
+#### Adding More Colours To Our Triangle
+
+- Update the `vertices` array so that we also add our colour values there:
+
+```C
+  // array to hold coordinates for triangle
+  float vertices[] = {
+      // x        y         z         red       green     blue
+      0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, // top coordinate
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right coordinate
+      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom left coordinate
+  };
+```
+
+- Update our `triangle.glsl` file so that we do tell it that we also have *colours* in our `vertices` data:
+
+```C
+/*
+   NOTE: some simple notes
+
+   - vertex shader is responsible for placing "data" / coordinates on screen
+   - fragment shader is responsible for "colouring" our pixels ( inside the points of data )
+   - each shader has its own entry point / `main` function
+   - we need to tell the `sokol-shdc` that this is a complete shader program with `@program`
+*/
+
+// beginning of vertex shader
+@vs vertex_shader
+
+// vertex shader take IN a single set of x, y and z coordinates at A time
+in vec3 pos;
+// vertex shader take IN a single set of red, green and blue colour at A time
+in vec3 colour;
+
+// need to pass that colour to `fragment_shader` ==> `vertex_shader` now has an output
+out vec3 out_vertex_shader_colour;
+
+// main entry point / main function for vertex shader
+void main() {
+  // no transformation for coordinates ==> simply "place" them
+  // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
+  gl_Position = vec4(pos, 1.0f);
+
+  // return colour from the vertex_shader
+  out_vertex_shader_colour = colour;
+}
+
+// end of vertex shader
+@end
+
+// beginning of fragment shader
+@fs fragment_shader
+
+// get the colour from our `vertex_shader`
+in vec3 out_vertex_shader_colour;
+
+// outputs 'RGBA' value
+out vec4 frag_colour;
+
+// main entry point / main function for vertex shader
+void main() {
+  // INFO: hardcode colour from `vertices` array from 'main.c'
+  frag_colour = vec4(out_vertex_shader_colour, 1.0);
+}
+
+// end of fragment shader
+@end
+
+// complete shader program with vertex and fragment shader
+@program triangle vertex_shader fragment_shader
+```
+
+- Update our pipeline so that we are able to use those colours ( *add more attributes* ):
+
+```C
+  // create the pipeline for applying the shaders
+  state.pipeline = sg_make_pipeline(&(sg_pipeline_desc){
+      // pass in our shader
+      .shader = sg_make_shader(triangle_shader_desc(sg_query_backend())),
+      // make the GPU understand our `vertices` vertex data
+      .layout = {.attrs = {
+                     // get the actual coordinate position
+                     [ATTR_triangle_pos].format = SG_VERTEXFORMAT_FLOAT3,
+                     // get the colour
+                     [ATTR_triangle_colour].format = SG_VERTEXFORMAT_FLOAT3,
+                 }}});
+```
+
+> We added one more attribute called `ATTR_triangle_colour`!
+
+> [!SUCCESS]
+> After running another `make shader`... Now, running `make`; I see a very nice triangle that looks like a colour picker as all the colours of 'RGB' are mixing nicely!
+> 
+> Additionally, we can see that the our **colours** *match-up* with our **coordinates** ( *see updated `vertices` array* )
+
+## Third Video Tutorial
+
+### Learning A Bit About How 3D Graphics Works
+
+> [!NOTE]
+> - Coding With Sphere ( *Third Video Tutorial At 48 seconds* ): https://www.youtube.com/watch?v=e23SJ-6zUrk&t=48s
+
+> Its just **linear algebra**!
+
+#### Model, View and Projection ( Matrices )
+
+- **Model** ( *Matrix* ):
+	- *position*, *rotation*, *scale* in the world space
+- **View** ( *Matrix* ):
+	- where the *camera* is located / positioned in world space
+- **Projection** ( *Matrix* ):
+	- Get the *camera's vision* of the 3D-world and **project** that into a 2D surface / screen
+
+- Here is a Mermaid diagram created by Claude that explain the *pipeline*:
+
+```mermaid
+flowchart TD
+    A[Model Space — raw triangle coordinates] -->|Model Matrix: places it in the scene| B[World Space — shared scene coordinates]
+    B -->|View Matrix: accounts for the camera| C[View Space — relative to the camera]
+    C -->|Projection Matrix: applies perspective/FOV| D[Clip Space → Screen — final 2D position]
+```
+
+> "*Combine all of the above with a bunch of 'vertices' to get a nice looking scene*" Coding with Sphere
+
+### Math Library For Matrix Multiplications
+
+> [!NOTE]
+> - cglm GitHub Repository: https://github.com/recp/cglm
+
+#### "Install" clgm As Dependency
+
+Well, you know that we already have our `dependencies` folder at the *root* of our project and we simply need to clone that 'cglm' repository as a `git submodule` and we should be fine!
+
+> I am simply going to be showing you how I did that for my case in the following code blocks!
+
+```bash
+# clone the 'cglm' repository as a submodule
+git submodule add https://github.com/recp/clgm.git dependencies/cglm
+
+# pin down to the current latest commit
+git checkout 46f46e5dcb84bc5bfcc07675f026077272704f0c
+
+# check the status of submodules
+git submodule status
+```
+
+- This is the output after running the `status` command ( *from above* ):
+
+```console
+ 46f46e5dcb84bc5bfcc07675f026077272704f0c cglm (v0.9.6-61-g46f46e5)
+ 28f9d8d44d92dab8536791a9f7d13d7e911a2b39 sokol (gles2-2276-g28f9d8d)
+```
+
+- Modify our `Makefile` as clgm has its own `include` thingy:
+
+```bash
+# our neccessary includes for 'cglm'
+INCLUDES = -Idependencies/cglm/include
+
+# local development ==> compiling, running and deleting
+program: compile run clean
+
+# compile the program according to system
+compile:
+	@$(CC) main.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+```
+
+> The rest are completely untouched!
+
+> [!BUG]
+> 
+> > Given that we are Neovim users... I think we are going to understand this part!
+> 
+> So, if you are using `clangd` like I am... We are going to have to add a `compile_flags.txt` file to the *root* of this project so that other people you are also using `clangd` as their LSP can check for errors and things like that... *Basic LSP [type-shit](https://knowyourmeme.com/memes/type-shit-shi-slang)*!
+> 
+> > We need to do that because the **header files** for 'cglm' are found inside *its* `include` folder.
+> 
+> - Here is how the `compile_flags.txt` file should look like:
+> 
+> ```txt
+> -std=c2x
+> -Idependencies/cglm/include
+> ```
+
+- Update our `main.c` file so as to **include** 'cglm':
+
+```C
+// own the function implementation found in sokol's header file
+#define SOKOL_IMPL
+// Linux: using OpenGL's API to communicate with GPU
+#define SOKOL_GLCORE
+// NOTE: please read line 1154 of "our" `sokol_app.h` header file
+#define SOKOL_NO_ENTRY
+// include the sokol header file --> windowing and events
+#include "dependencies/sokol/sokol_app.h"
+// include the sokol header file --> simple GPU API wrapper - pixels, rendering
+#include "dependencies/sokol/sokol_gfx.h"
+// include the sokol header file --> helper functions for 'sokol_gfx.h' file
+#include "dependencies/sokol/sokol_glue.h"
+// include 'clgm' higly optimsed math library for 2D and 3D stuff
+#include "cglm/cglm.h"
+// include our shader for our triangle
+#include "triangle_shader.h"
+```
+
+> Similar to 'Coding with Sphere'; I am *including* it before `triangle.h`!
+
+#### Using clgm
+
+So we are going to be using this math library to be able to make our *matrices*.
+
+> [!WARNING]
+> I am kind-of getting bored right now and only want to code... Yes, I know that I should continue this documentation as its also near completion but given the time that I have and I want to do other things ( *like Aim Training xD* ).
+> 
+> I am going to basically go a bit faster while still trying to retain all the important information that I can add here!
+> 
+> The **main** reason that I am saying the above stuff is because of the amount of coding that I am going to have to do and explaining each line of the code is going to get troublesome in terms of where the code is actually is.
+> 
+> Hence, I would recommend you to also go watch the video that 'Coding with Sphere' made so that you also get a better understanding of what we are trying to do.
+
+> [!NOTE]
+> I am just going to write what I consider important.
+
+> [!NOTE]
+> - Identity Matrix: https://en.wikipedia.org/wiki/Identity_matrix
+> - Unit Vector ( *basically the x, y and z coordinates in a single vector... Ahh the good old days of Grade 12 and 13 mathematics!* ): https://en.wikipedia.org/wiki/Unit_vector
+
+- Here is everything that we did to *setup* our 'MVP' in our `frame` function:
+
+```C
+void frame(void) {
+  // function to display at each render state ==> called once every frame
+
+  // define our 4x4 matrices for 3D "rendering"
+  mat4 model_matrix, view_matrix, proj_matrix;
+
+  // place the object in the middle of our screen ==> no transformation,
+  // rotation, or any sort of that stuff
+  glm_mat4_identity(model_matrix);
+
+  // similarly, we need to do the same thing for our view matrix ==> the camera
+  glm_mat4_identity(view_matrix);
+
+  // define the camera position ==> at the origin in the middle of our screen
+  // INFO: see OpenGL's coordinate system to learn more
+  vec3 eye = {0.0f, 0.0f, 0.0f};
+
+  // define the place where the camera is going to be looking at
+  /*
+   * INFO: need to look at 'z' due to the right-handed nature of OpenGL
+   *
+   * Picture showing Right-Handed ( and Left Handed ):
+   * https://perry.cz/articles/ProjectionMatrix.xhtml
+   */
+  vec3 center = {0.0f, 0.0f, -1.0f};
+
+  // where does our y-axis is located
+  // INFO: in this case its basically like in the image above ( see link )
+  // additionally, Minecraft also places its y-axis like a normal human-being!
+  vec3 up = {0.0f, 1.0f, 0.0f};
+
+  // place the "camera" at set location on the screen by updating `viewr_matrix`
+  glm_lookat(eye, center, up, view_matrix);
+
+  // field of view for our "eye"
+  float fov = 100.0f;
+
+  // get the aspect ratio of the "dynamic" / resize-able window
+  float window_width = sapp_widthf();
+  float window_height = sapp_heightf();
+
+  float aspect_ratio = window_width / window_height;
+
+  // how "near" a vertex can be before its not seen
+  float near = 0.1f;
+
+  // how "far" a vertex can be before its not seen
+  float far = 0.1f;
+
+  // convert the 3D world and project it on a 2D screen
+  glm_perspective(fov, aspect_ratio, near, far, proj_matrix);
+
+  // combine all the "populated" matrix into one final matrix to pass to shader
+  // INFO: MVP matrix
+  mat4 mvp;
+
+  // basically matrix multiplication is going to happen here
+  // INFO: multiplies 'n' number of matrices, given array of matrices of length
+  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3, mvp);
+
+  // the rest of the code is the same for now...
+}
+```
+
+- Update the `triangle.glsl` file so we pass the above `mvp` matrix to our shaders through **uniforms**:
+
+> [!NOTE]
+> - Uniforms in Graphics Programmings:
+> 	- Medium Article: https://medium.com/imagecraft/data-buffers-and-uniform-variables-in-opengl-b91f1bfb6808
+> 	- The Book Of Shaders: https://thebookofshaders.com/03/ ( *very nice* )
+
+> Here is our **modified** vertex shader!
+
+```C
+// beginning of vertex shader
+@vs vertex_shader
+
+// vertex shader take IN a single set of x, y and z coordinates at A time
+in vec3 pos;
+// vertex shader take IN a single set of red, green and blue colour at A time
+in vec3 colour;
+
+// need to pass that colour to `fragment_shader` ==> `vertex_shader` now has an output
+out vec3 out_vertex_shader_colour;
+
+// create uniforms ==> basically global "constants" used by ( vertex ) shader
+layout(binding=0) uniform triangle_params {
+  // get our `mvp` matrix found inside our 'main.c' file ( "from the CPU" )
+  mat4 mvp;
+}
+
+// main entry point / main function for vertex shader
+void main() {
+  // no transformation for coordinates ==> simply "place" them
+  // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
+
+  // we are now updating the position of vertices with our `mvp` matrix
+  gl_Position = mvp * vec4(pos, 1.0f);
+
+  // return colour from the vertex_shader
+  out_vertex_shader_colour = colour;
+}
+
+// end of vertex shader
+@end
+```
+
+> [!IMPORTANT]
+> Simply, rebuild your `triangle.h` **header file** using the `make shader` command!
+
+> [!WARNING]
+> We are going to be changing a bunch of things and also go and understand about `ctype`...
+> 
+> Therefore, I recommend you to start watching the video at this time: https://www.youtube.com/watch?v=e23SJ-6zUrk&t=635s
+
+### Understanding Application Of Uniforms
+
+> [!NOTE]
+> Given that I, myself, did **not** really understand this part of the video... I am going to be using Claude's help extensively in order to make me understand that we *are going to be doing* ( *see below* ).
+
+- Create the uniform in our `triangle.glsl` file so as to get the `mvp` matrix from the `main.c` file into the GPU:
+
+```C
+// create uniforms ==> basically global "constants" used by ( vertex ) shader
+layout(binding=0) uniform triangle_params {
+  // get our `mvp` matrix found inside our 'main.c' file ( "from the CPU" )
+  mat4 mvp;
+};
+```
+
+> [!NOTE]
+> The above is done created / written inside of our `vertex_shader` shader!
+
+- Update the position of `gl_Position` by using matrix multiplication:
+
+```C
+// main entry point / main function for vertex shader
+void main() {
+  // no transformation for coordinates ==> simply "place" them
+  // NOTE: `gl_Position` is of type `vec4` ==> need to convert `vec3` to `vec4`
+
+  // we are now updating the position of vertices with our `mvp` matrix
+  gl_Position = mvp * vec4(pos, 1.0f);
+
+  // return colour from the vertex_shader
+  out_vertex_shader_colour = colour;
+}
+```
+
+> [!IMPORTANT]
+> Given that if you know you mathematics; you clearly know that there is a way to do matrix multiplication and its **not** like $2 \times 2 \eq 2 \times 2$ ( *you know what I mean* ).
+> 
+> Therefore, its really **important** that we have our `mvp` matrix in front of `vec4(pos, 1.0f)`!
+
+Hence, if we now go ahead and run our little `make shader` command to create our new `triangle_shader.h` file... In my case ( *and at this point in time* ), I see that we have the following at line 39.
+
+- This is the struct that as been generated when we added our uniform binding:
+
+```C
+SOKOL_SHDC_ALIGN(16) typedef struct triangle_params_t {
+    float mvp;
+} triangle_params_t;
+```
+
+- I can also see this in the comments above:
+
+```C
+/*
+	other comments above
+	
+    Bindings:
+        Uniform block 'triangle_params':
+            C struct: triangle_params_t
+            Bind slot: UB_triangle_params => 0
+*/
+```
+
+- Update the `triangle.glsl` file once more with the following at the top of the file:
+
+```C
+// change the type of `mvp` from `float` to `mat4` in 'triangle_shader.h' file
+@header #include "cglm/cglm.h"
+@ctype mat4 mat4
+```
+
+So the reason as to why we do that is because we want to instead use `mat4` datatype instead of the `float` datatype when we create our uniform through the `triangle.glsl` file.
+
+> [!TIP]
+> The above lines that we have added are **only** for `sokol-shdc`; so that when we run our `make shader` command... We should see that **don't** have that `float mvp` and it should be converted to `mat4 mvp`.
+
+- Therefore, if we run our `make shader` command again, we should see this:
+
+```C
+SOKOL_SHDC_ALIGN(16) typedef struct triangle_params_t {
+    mat4 mvp;
+} triangle_params_t;
+```
+
+> [!SUCCESS]
+> As you can see, we have been able to successfully **change** the datatype from `float` to `mat4`.
+> 
+> > This is also the reason as to why we have: `@header #include "cglm/cglm.h"`. Because that datatype is found inside that `cglm.h` **header file**!
+
+- Finally, we therefore modify our `main.c` file by removing the original `mat4 mvp;` definition in order to use the new one:
+
+```C
+  // sokol-shdc generated triangle params through 'triangle.glsl' uniform
+  triangle_params_t params = {0};
+
+  // combine all the "populated" matrix into one final matrix to pass to shader
+  // basically matrix multiplication is going to happen here
+  // INFO: multiplies n number of matrices, given array of matrices of length n
+  glm_mat4_mulN((mat4 *[]){&proj_matrix, &view_matrix, &model_matrix}, 3,
+                params.mvp);
+
+  // apply and use the uniforms so as to pass the data to the GPU
+  sg_apply_uniforms(UB_triangle_params, &SG_RANGE(params));
+```
+
+> Again this is found inside our `frame` function!
+
+- Additionally, add the following translation to our `model_matrix` as the `eye` is on top of the model:
+
+```C
+  // place the object in the middle of our screen ==> no transformation,
+  // rotation, or any sort of that stuff
+  glm_mat4_identity(model_matrix);
+
+  // move the actual model 2 units back on the z-axis
+  glm_translate(model_matrix, (vec3){0.0f, 0.0f, -2.0f});
+```
+
+### Animation of Model
+
+#### Create Model File
+
+- Create the following `model.h` file:
+
+```C
+#ifndef MODEL_H
+#define MODEL_H
+
+// model transformation for scene objects
+
+// include 'cglm' vectors
+#include "cglm/types.h"
+#include "cglm/vec3.h"
+
+// our model component / structure
+typedef struct {
+  // define the model's "attributes"
+  vec3 position, rotation, scale;
+} model;
+
+// function signature --> returns default initialised model
+model model_defaults();
+
+#endif
+```
+
+- Create the following `model.c` file:
+
+```C
+#include "model.h"
+
+// model component and intialisation helpers
+
+// create some defaults for the model
+model model_defaults() {
+  // create our model
+  model m = {0};
+
+  // update the scaling of the model
+  glm_vec3_add(m.scale, (vec3){1, 1, 1}, m.scale);
+
+  // return the default for the model
+  return m;
+}
+```
+
+- Update our `Makefile` to also compile our `model.c` file:
+
+```bash
+# compile the program according to system
+compile:
+	@$(CC) main.c model.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+```
+
+> The rest of the code is the **same** as before...
+
+- Update our `state` struct in our `main.c` file to include the *default* model:
+
+```C
+// state stucture for rendering
+static struct {
+  // action performed during a render pass
+  sg_pass_action pass_action;
+  // GPU bindings for drawing --> hold data for buffers, textures and more
+  sg_bindings bindings;
+  // shader, vertex layout / positioning and render settings
+  sg_pipeline pipeline;
+  // define our model to be rendered --> triangle transformation for every frame
+  model triangle;
+} state;
+```
+
+- Update our `init` function:
+
+```C
+  // setup the triangle's model default positioning, rotation and scaling
+  state.triangle = model_defaults();
+```
+
+> This has been added just below the `sg_setup` function!
+
+- Update our `frame` function to actually *animate* our triangle model:
+
+```C
+void frame(void) {
+  // function to display at each render state ==> called once every frame
+
+  // move the triangle model back along the z-axis for the duration of the frame
+  state.triangle.position[2] -= sapp_frame_duration();
+  // rotate the triangle model along the y-axis for the duration of the frame
+  state.triangle.rotation[1] -= sapp_frame_duration();
+  // scale the triangle model along the x-axis for the duration of the frame
+  state.triangle.scale[0] += 0.01f * sapp_frame_duration();
+
+  // define our 4x4 matrices for 3D "rendering"
+  mat4 model_matrix, view_matrix, proj_matrix;
+
+  // place the object in the middle of our screen ==> no transformation,
+  // rotation, or any sort of that stuff
+  glm_mat4_identity(model_matrix);
+
+  // move the model using the "data" from model's default function
+  glm_translate(model_matrix, state.triangle.position);
+
+  // setup the rotation for each of the axes that we have
+
+  // x-axis
+  glm_rotate(model_matrix, state.triangle.rotation[0],
+             (vec3){1.0f, 0.0f, 0.0f});
+  // y-axis
+  glm_rotate(model_matrix, state.triangle.rotation[1],
+             (vec3){0.0f, 1.0f, 0.0f});
+  // z-axis
+  glm_rotate(model_matrix, state.triangle.rotation[2],
+             (vec3){0.0f, 0.0f, 1.0f});
+
+  // set the model's scale using data from the model's default function
+  glm_scale(model_matrix, state.triangle.scale);
+
+  // the rest of the code is the same
+}
+```
+
+> [!SUCCESS]
+> We now have a rotating, scaling and "*positioning*" triangle in our window!
+
+### Code Reorganisation
+
+> For now just move model "*animations*" to `model.h` and `model.c`
+
+- Update `model.h` file:
+
+```C
+#ifndef MODEL_H
+#define MODEL_H
+
+// model transformation for scene objects
+
+// include 'cglm' vectors
+#include "cglm/types.h"
+#include "cglm/vec3.h"
+
+// our model component / structure
+typedef struct {
+  // define the model's "attributes"
+  vec3 position, rotation, scale;
+} model;
+
+// function signature --> returns default initialised model
+model model_defaults();
+
+// function signature --> return default "animations" settings
+void model_matrix(model *self, mat4 dest);
+
+#endif
+```
+
+- Update `model.c` file:
+
+```C
+#include "model.h"
+
+#include "cglm/cglm.h"
+
+// model component and intialisation helpers
+
+// create some defaults for the model
+model model_defaults() {
+  // create our model
+  model m = {0};
+
+  // update the scaling of the model
+  glm_vec3_add(m.scale, (vec3){1, 1, 1}, m.scale);
+
+  // return the default for the model
+  return m;
+}
+
+// create default for triangle "animation"
+void model_matrix(model *self, mat4 dest) {
+  glm_mat4_identity(dest);
+
+  // move the model using the "data" from model's default function
+  glm_translate(dest, self->position);
+
+  // setup the rotation for each of the axes that we have
+
+  // x-axis
+  glm_rotate(dest, self->rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+  // y-axis
+  glm_rotate(dest, self->rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+  // z-axis
+  glm_rotate(dest, self->rotation[2], (vec3){0.0f, 0.0f, 1.0f});
+
+  // set the model's scale using data from the model's default function
+  glm_scale(dest, self->scale);
+}
+```
+
+- Update our `main.c` file's `frame` function:
+
+```C
+  // apply our transformation, rotation and scaling to our model ==> animation
+  model_matrix(&state.triangle, model_mat);
+```
+
+> [!WARNING]
+> I have also renamed all our matrices like so:
+> 
+> ```C
+>  // define our 4x4 matrices for 3D "rendering"
+>  mat4 model_mat, view_mat, proj_mat;
+> ```
+> 
+> This is due to the fact that we simply cannot have both a **variable** and a **function** having the same *identifier* name ( *i.e `model_matrix`* ).
 
 ---
 
