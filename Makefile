@@ -12,15 +12,15 @@ else
   LIBS = -lX11 -lXi -lXcursor -lGL -lasound -ldl -lm -pthread
 endif
 
-# our neccessary includes for 'cglm'
-INCLUDES = -Idependencies/cglm/include
+# our neccessary includes for 'cglm' and 'fast_obj'
+INCLUDES = -Idependencies/cglm/include -Idependencies/fast_obj
 
 # local development ==> compiling, running and deleting
 program: compile run clean
 
 # compile the program according to system
 compile:
-	@$(CC) main.c model.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+	@$(CC) main.c model.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
 
 # compile the program
 run:

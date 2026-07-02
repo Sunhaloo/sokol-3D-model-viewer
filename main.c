@@ -205,7 +205,12 @@ void cleanup(void) {
   sg_shutdown();
 };
 
-void event(const sapp_event *event) {};
+void event(const sapp_event *event) {
+  // function to handle event handling like mouse and keyboard
+
+  // INFO: adding this to suppress `clangd` / `make` warnings
+  (void)event;
+};
 
 // our main function
 int main() {
