@@ -5,7 +5,7 @@ tags:
   - C
 author: S.Sunhaloo
 date: 2026-06-22
-status: In-Progress
+status: HOLD
 ---
 
 ## List of Contents
@@ -29,6 +29,10 @@ status: In-Progress
 		- [[#Math Library For Matrix Multiplications]]
 		- [[#Understanding Application Of Uniforms]]
 		- [[#Animation of Model]]
+- [[#Going On Our Own]]
+	- [[#Mesh]]
+	- [[#Object Loader]]
+	- [[#Remove Hard-Coded Stuff]]
 
 ---
 
@@ -1674,6 +1678,326 @@ void model_matrix(model *self, mat4 dest) {
 > ```
 > 
 > This is due to the fact that we simply cannot have both a **variable** and a **function** having the same *identifier* name ( *i.e `model_matrix`* ).
+
+# Going On Our Own
+
+So looking that the video series now... I see that it's kind-of abandon. Meaning that he did now complete the tutorial whereby he is able to simply type something like `model object.obj` file to be able to display the object quickly from the terminal.
+
+Therefore, I am going to try to continue the *learning* process... More like actually try to, together with Claude, complete what 'Coding with Sphere' was trying to achieve.
+
+Hence, we have made a little plan and from what I see it gave me; I think its doable and we should complete this project using already pre-made libraries.
+
+## Object File Loader
+
+Now, instead of writing our own parser, which to be honest, it was what I was planning to do originally but because of time and I also want to move onto other projects. I am simply going to be using `fast_obj` object loader.
+
+> [!INFO]
+> - Tsoding writing his own `.obj` parser: https://www.youtube.com/watch?v=IPEzHuSvPDA
+> - Fast Object Loader Library / API: https://github.com/thisistherk/fast_obj
+
+> [!IMPORTANT]
+> But talking with Claude we were originally going to go with 'tinyobjloader-c' but the project has been **archived**!
+> 
+> Now, they do have another repository but its only for C++ and it's actively maintained!
+> 
+> - GitHub Link:
+> 	- C Version ( *archieved* ): https://github.com/syoyo/tinyobjloader-c
+> 	- C++ Version ( *actively maintained* ): https://github.com/tinyobjloader/tinyobjloader
+
+> [!WARNING]
+> But looking at the C++ version of it; I see that we do also have a C11 version... But running the following command ( *check the version of C that you have* ):
+> 
+> ```bash
+> gcc -dM -E - < /dev/null | grep __STDC_VERSION__
+> ```
+> 
+> - I see the following output which means that I have C23 ( *which is currently the latest version as of 2/07/2026* ):
+> 
+> ```console
+> #define __STDC_VERSION__ 202311L
+> ```
+
+> Man, let this be; me and *Claude*, we have decided that we want to use `fast_obj`!
+
+### Add Fast Obj As Git Submodule
+
+In the code block below you are going to find everything that you need to add `fast_obj` as a `git submodule`.
+
+```bash
+# clone the repository as a git submodule
+git submodule add https://github.com/thisistherk/fast_obj dependencies/fast_obj
+
+# find the current latest commit and pin down to the current latest commit
+git checkout d620667f10a548dee94dbc8c144bb22f79162176
+
+# finally,  check the state of our sub-module
+git submodule status
+```
+
+- This is the output after running the `sumodule status` command:
+
+```console
+46f46e5dcb84bc5bfcc07675f026077272704f0c dependencies/cglm (v0.9.6-61-g46f46e5)
+d620667f10a548dee94dbc8c144bb22f79162176 dependencies/fast_obj (v1.3-6-gd620667)
+28f9d8d44d92dab8536791a9f7d13d7e911a2b39 dependencies/sokol (gles2-2276-g28f9d8d)
+```
+
+### Update Makefile and Compilation Flags
+
+We now simply need to update our `Makefile` and `compile_flags.txt` in order to *include* `fast_obj`.
+
+- Here is the updated *part* of our `Makefile`:
+
+```bash
+# the rest of the code are the same
+
+# our neccessary includes for 'cglm' and 'fast_obj'
+INCLUDES = -Idependencies/cglm/include -Idependencies/fast_obj
+
+# the rest of the code are the same
+
+# compile the program according to system
+compile:
+	@$(CC) main.c model.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+
+# the rest of the code are the same
+```
+
+- Here is our updated `compile_flags.txt` file:
+
+```txt
+-std=c2x
+-Idependencies/cglm/include
+-Idependencies/fast_obj
+```
+
+## Mesh
+
+So what we actually need to do right now is to replace our `vertices` float array into one that is **dynamic** whereby it can hold *any* amount of **vertex** and **index** data.
+
+This *mesh* is going to be sitting between our `fast_obj` and our `model.glsl` OpenGL shader file.
+
+Basically the we are going to be using `fast_obj` to load our `.obj` file and then pass it to the `mesh.h` file and then we can pass this data, currently being held inside of `mesh.h`, to our **shaders**.
+
+> This should replace our `triangle_shader.h` file!
+
+- Here is our full `mesh.h` file:
+
+```C
+#ifndef MESH_H
+#define MESH_H
+
+// include 'clgm' higly optimsed math library for 2D and 3D stuff
+#include "cglm/cglm.h"
+// include the sokol header file --> simple GPU API wrapper - pixels, rendering
+#include "dependencies/sokol/sokol_gfx.h"
+// include other integer types from vanilla C
+#include <stdint.h>
+
+// a single vertex in our "see of vertices"
+typedef struct {
+  // where the model sits in 3D space meaning in terms of x, y and z
+  vec3 position;
+  // direction for calculating the lighting
+  vec3 normal;
+} vertex_t;
+
+// the complete mesh structure for GPU to render
+typedef struct {
+  // CPU side ==> the vertices of the model, etc
+  // NOTE: these `vertices` and `indices` are heap allocated!
+  vertex_t *vertices;
+  uint32_t vertex_count;
+  uint32_t *indices;
+  uint32_t index_count;
+  // GPU side ==> buffer that sokol is going to point to --> upload to GPU VRAM
+  sg_buffer vertex_buffer;
+  sg_buffer index_buffer;
+} mesh_t;
+
+// function for the CPU to pass the mesh data to the GPU
+void mesh_upload(mesh_t *mesh);
+
+// function to cleanup the CPU arrays and GPU buffers
+void mesh_destroy(mesh_t *mesh);
+
+#endif
+```
+
+- Create the equivalent `mesh.c` file:
+
+```C
+#include "mesh.h"
+#include <stdlib.h>
+
+void mesh_upload(mesh_t *mesh) {
+  // function to upload vertex data to the GPU
+
+  // upload / send the actual vertex data / array to the GPU
+  mesh->vertex_buffer = sg_make_buffer(&(sg_buffer_desc){
+      .data =
+          {
+              .ptr = mesh->vertices,
+              .size = sizeof(vertex_t) * mesh->vertex_count,
+          },
+  });
+
+  // upload / send the actual index data / array to the GPU
+  mesh->index_buffer = sg_make_buffer(&(sg_buffer_desc){
+      .data =
+          {
+              .ptr = mesh->indices,
+              .size = sizeof(uint32_t) * mesh->index_count,
+          },
+  });
+}
+
+void mesh_destroy(mesh_t *mesh) {
+  // function to delete the resources inside of GPU and then the CPU
+
+  // free up the GPU buffers
+  sg_destroy_buffer(mesh->vertex_buffer);
+  sg_destroy_buffer(mesh->index_buffer);
+
+  // free CPU vertex and index arrays
+  free(mesh->vertices);
+  free(mesh->indices);
+
+  // NOTE: set the structure to `0` again to avoid dangling pointers
+  *mesh = (mesh_t){0};
+}
+```
+
+### Update Our Makefile Compile Target
+
+Therefore, to be able to actually compile the `mesh.c` file, we are going to have to update our `Makefile` `compile` target like so:
+
+```bash
+# compile the program according to system
+compile:
+	@$(CC) main.c model.c mesh.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+```
+
+> The rest of the *code* stays the same
+
+## Object Loader
+
+Now, we are going to be writing the code whereby we are going to actually `fast_obj` to actually load the `.obj` file.
+
+Its going to give us **three** different arrays that we are going to have to combine in order to pass them to our *shaders*.
+
+- Create the `object_loader.h` header file:
+
+```C
+#ifndef OBJ_LOADER_H
+#define OBJ_LOADER_H
+
+// mesh_t struct and types needed for the output parameter
+#include "mesh.h"
+
+// function signature to load a `.obj` file and turn into `mesh_t` for the GPU
+int obj_load(const char *path, mesh_t *out_mesh);
+
+#endif
+```
+
+- Create the `object_loader.c` file:
+
+> [!WARNING]
+> This file completely been written by Claude and I am at a point where I don't really understand what is happening anymore.
+> 
+> I mean I know what *step* what we dealing with and what we are trying to achieve but in term of code... **I am simply fucking up myself and my skills but then again how would I complete this**!
+> 
+> > Additionally, its a pretty long file. I recommend you to check the actual file on the GitHub repository ( *if you do understand things about this... Please help me :(* )
+
+- Do also update our `compile` target in our `Makefile`:
+
+```bash
+# compile the program according to system
+compile:
+	@$(CC) main.c model.c mesh.c object_loader.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+```
+
+> Again, only this part of the *code* has been changed!
+
+## Remove Hard-Coded Stuff
+
+Right now, we have everything like our *mesh* and *object loader* but we are still using that **hard-coded** triangle in our `main.c` file.
+
+Hence, in order to remove that "*hard-codyness*" ( *I don't know English man...* ); we are going to be writing a new `model.glsl` file which is going to be able to take the data from our *mesh* and then send the data to our GPU to run the calculations.
+
+### Model File and Lighting
+
+> [!NOTE]
+> Did I already say that I have a `test.obj` file in my `assets/models` directory?
+> 
+> Well, its basically Blender's Suzanne monkey that I downloaded from the GitHub!
+> 
+> > Link: https://github.com/OpenGLInsights/OpenGLInsightsCode/blob/master/Chapter%2026%20Indexing%20Multiple%20Vertex%20Arrays/article/suzanne.obj
+
+> [!IMPORTANT]
+> Claude is telling me that we are going to have to write the stuff for **lighting** else it will not really like a 3D-model instead it would look like a *silhouette*.
+
+> [!WARNING]
+> Do check the `model.glsl` file in the GitHub repository as I think it's going to be a waste of space here!
+
+- Create the `model_shader.h` file using the following command:
+
+```bash
+./sokol-shdc --input assets/shaders/model.glsl --output model_shader.h --slang glsl430:hlsl5:metal_macos 
+```
+
+> [!NOTE]
+> Go ahead and update the command inside our `Makefile` for the `shader` target to the above as we are **not** going to be using our `triangle.glsl` shader file anymore.
+
+### Update Main File
+
+I am now going to go ahead and do some changes to our `main.c` file and in short here is what I am going to be doing:
+
+- Updating the `#include` at the top to add our object loader and change our shader header file
+- Swap the triangle model for our `mesh_t`
+- Update hard-coded vertices with our object loader
+- Update the pipeline to match new `model.glsl` file
+
+# The Full View
+
+```mermaid
+flowchart TB
+    obj[test.obj] --> loader[object_loader.c]
+    loader --> mesh["mesh_t (mesh.h)"]
+    mesh --> gpu[GPU buffers]
+
+    model["model_t (model.h)"] --> matrix["model_matrix (model.c)"]
+    matrix --> model_mat[model matrix]
+
+    cam["glm_lookat (main.c)"] --> view_mat[view matrix]
+    proj["glm_perspective (main.c)"] --> proj_mat[projection matrix]
+
+    model_mat --> mvp[mvp = proj * view * model]
+    view_mat --> mvp
+    proj_mat --> mvp
+    model_mat --> uniforms["uniforms: mvp + model (model.glsl)"]
+
+    mvp --> uniforms
+    gpu --> bindings["sg_apply_bindings (main.c)"]
+    uniforms --> shader["sg_apply_uniforms (main.c)"]
+    shader --> draw["sg_draw (main.c)"]
+    bindings --> draw
+    draw --> depth["Depth test (main.c)"]
+    depth --> screen[Screen]
+```
+
+> [!SUCCESS]
+> And with that... I think we are done!
+> 
+> I mean, I do think now that we are here and testing out different object files I see that we have big and small models that affects the view.
+> 
+> So maybe the next steps for this project is going to be adding:
+> 
+> - Mouse Events ( *scroll to zoom, etc* )
+> - Argument Passing so that we can load object files with something like `program model.obj`
+> 
+> But for now I think I am happy with where I have come from... *Man, I did not even know what a shader was*!
 
 ---
 

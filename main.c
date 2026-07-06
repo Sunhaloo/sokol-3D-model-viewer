@@ -47,8 +47,8 @@ void init(void) {
   // setup the triangle's model default positioning, rotation and scaling
   state.triangle = model_defaults();
 
-  // load our `.obj` file from the hard drive and turn it into a mesh for the GPU
-  // INFO: `test.obj` is Suzanne from Blender ( the monkey head )
+  // load our `.obj` file from the hard drive and turn it into a mesh for the
+  // GPU INFO: `test.obj` is Suzanne from Blender ( the monkey head )
   if (!obj_load("assets/models/test.obj", &state.mesh)) {
     // if loading failed, return early as there is nothing to render
     return;
@@ -63,14 +63,23 @@ void init(void) {
       // pass in our shader
       .shader = sg_make_shader(model_shader_desc(sg_query_backend())),
       // make the GPU understand our vertex data
-      .layout = {.attrs = {
-                     // get the actual coordinate position
-                     [ATTR_model_position].format = SG_VERTEXFORMAT_FLOAT3,
-                     // get the normal direction for lighting
-                     [ATTR_model_normal].format = SG_VERTEXFORMAT_FLOAT3,
-                 }},
+      .layout = {.attrs =
+                     {
+                         // get the actual coordinate position
+                         [ATTR_model_position].format = SG_VERTEXFORMAT_FLOAT3,
+                         // get the normal direction for lighting
+                         [ATTR_model_normal].format = SG_VERTEXFORMAT_FLOAT3,
+                     }},
       // tell sokol that we are using 32-bit unsigned integers for our indices
       .index_type = SG_INDEXTYPE_UINT32,
+      // enable depth testing so front faces occlude back faces
+      .depth =
+          {
+              // fragments pass if their depth is <= the existing depth value
+              .compare = SG_COMPAREFUNC_LESS_EQUAL,
+              // write fragment depth to the depth buffer for future comparisons
+              .write_enabled = true,
+          },
   });
 
   // update the state
@@ -125,7 +134,7 @@ void frame(void) {
    *
    */
   // INFO: see OpenGL's coordinate system to learn more
-  vec3 eye = {0.0f, 0.0f, 1.6f};
+  vec3 eye = {0.0f, 10.0f, 40.0f};
 
   // define the place where the camera is going to be looking at
   /*
