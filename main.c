@@ -21,6 +21,9 @@
 // include our shader for our model
 #include "model_shader.h"
 
+// path to the model file, set from command-line args before sapp_run
+static const char *obj_path;
+
 // state stucture for rendering
 static struct {
   // action performed during a render pass
@@ -48,8 +51,8 @@ void init(void) {
   state.triangle = model_defaults();
 
   // load our `.obj` file from the hard drive and turn it into a mesh for the
-  // GPU INFO: `test.obj` is Suzanne from Blender ( the monkey head )
-  if (!obj_load("assets/models/test.obj", &state.mesh)) {
+  // GPU INFO: default is `test.obj` ( Suzanne from Blender )
+  if (!obj_load(obj_path, &state.mesh)) {
     // if loading failed, return early as there is nothing to render
     return;
   }
@@ -231,9 +234,13 @@ void event(const sapp_event *event) {
 };
 
 // our main function
-int main() {
+int main(int argc, char *argv[]) {
   // initialise our application ==> windowing, GPU setup...
   // INFO: my formatter is formatting weirdly x_x
+
+  // use first command-line arg as model path, or default if none given
+  obj_path = (argc > 1) ? argv[1] : "assets/models/test.obj";
+
   sapp_run(&(sapp_desc){// setup main point
                         .init_cb = init,
                         .frame_cb = frame,
