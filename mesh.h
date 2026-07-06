@@ -29,10 +29,10 @@ typedef struct {
   sg_buffer index_buffer;
 } mesh_t;
 
-// function for the CPU to pass the mesh data to the GPU
+// function signature for the CPU to pass the mesh data to the GPU
 void mesh_upload(mesh_t *mesh);
 
-// function to cleanup the CPU arrays and GPU buffers
+// function signature to cleanup the CPU arrays and GPU buffers
 void mesh_destroy(mesh_t *mesh);
 
 #endif
