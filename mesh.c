@@ -1,3 +1,5 @@
+// include the sokol header file --> simple GPU API wrapper - pixels, rendering
+#include "dependencies/sokol/sokol_gfx.h"
 // include our mesh's header file and implement the functions signatures here
 #include "mesh.h"
 // include C's standard library

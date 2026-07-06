@@ -3,8 +3,6 @@
 
 // include 'clgm' higly optimsed math library for 2D and 3D stuff
 #include "cglm/cglm.h"
-// include the sokol header file --> simple GPU API wrapper - pixels, rendering
-#include "dependencies/sokol/sokol_gfx.h"
 // include other integer types from vanilla C
 #include <stdint.h>
 

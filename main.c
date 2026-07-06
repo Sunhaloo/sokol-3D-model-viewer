@@ -14,8 +14,10 @@
 #include "cglm/cglm.h"
 // include our newly created 'model.h' file
 #include "model.h"
-// include our shader for our triangle
-#include "triangle_shader.h"
+// include our object loader
+#include "object_loader.h"
+// include our shader for our model
+#include "model_shader.h"
 
 // state stucture for rendering
 static struct {

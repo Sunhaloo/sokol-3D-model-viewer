@@ -30,6 +30,6 @@ run:
 clean:
 	@$(RM) $(OUTPUT)
 
-# to compile our ( triangle ) shader
+# to compile our shader
 shader:
-	@./sokol-shdc --input assets/shaders/triangle.glsl --output triangle_shader.h --slang glsl430:hlsl5:metal_macos
+	@./sokol-shdc --input assets/shaders/model.glsl --output model_shader.h --slang glsl430:hlsl5:metal_macos
