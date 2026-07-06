@@ -5,11 +5,13 @@
 // include C's standard library
 #include <stdlib.h>
 
+
 void mesh_upload(mesh_t *mesh) {
   // function to upload vertex data to the GPU
 
   // upload / send the actual vertex data / array to the GPU
   mesh->vertex_buffer = sg_make_buffer(&(sg_buffer_desc){
+      .usage = {.vertex_buffer = true, .immutable = true},
       .data =
           {
               .ptr = mesh->vertices,
@@ -19,6 +21,7 @@ void mesh_upload(mesh_t *mesh) {
 
   // upload / send the actual index data / array to the GPU
   mesh->index_buffer = sg_make_buffer(&(sg_buffer_desc){
+      .usage = {.index_buffer = true, .immutable = true},
       .data =
           {
               .ptr = mesh->indices,

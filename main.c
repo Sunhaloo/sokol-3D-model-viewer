@@ -14,6 +14,8 @@
 #include "cglm/cglm.h"
 // include our newly created 'model.h' file
 #include "model.h"
+// include our mesh structure for dynamic loading
+#include "mesh.h"
 // include our object loader
 #include "object_loader.h"
 // include our shader for our model
@@ -29,6 +31,8 @@ static struct {
   sg_pipeline pipeline;
   // define our model to be rendered --> triangle transformation for every frame
   model triangle;
+  // define our model's mesh --> actual loaded geometry from the `.obj` file
+  mesh_t mesh;
 } state;
 
 // function related to `sapp_run` and `sapp_desc`
@@ -43,31 +47,31 @@ void init(void) {
   // setup the triangle's model default positioning, rotation and scaling
   state.triangle = model_defaults();
 
-  // array to hold coordinates for triangle
-  float vertices[] = {
-      // x        y         z         red       green     blue
-      0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, // top coordinate
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right coordinate
-      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom left coordinate
-  };
+  // load our `.obj` file from the hard drive and turn it into a mesh for the GPU
+  // INFO: `test.obj` is Suzanne from Blender ( the monkey head )
+  if (!obj_load("assets/models/test.obj", &state.mesh)) {
+    // if loading failed, return early as there is nothing to render
+    return;
+  }
 
-  // GPU buffer containing `vertices` / vertex data
-  state.bindings.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
-      // place / initialise that buffer with our actual data
-      .data = SG_RANGE(vertices),
-  });
+  // bind the GPU buffers from the mesh to the rendering state
+  state.bindings.vertex_buffers[0] = state.mesh.vertex_buffer;
+  state.bindings.index_buffer = state.mesh.index_buffer;
 
   // create the pipeline for applying the shaders
   state.pipeline = sg_make_pipeline(&(sg_pipeline_desc){
       // pass in our shader
-      .shader = sg_make_shader(triangle_shader_desc(sg_query_backend())),
-      // make the GPU understand our `vertices` vertex data
+      .shader = sg_make_shader(model_shader_desc(sg_query_backend())),
+      // make the GPU understand our vertex data
       .layout = {.attrs = {
                      // get the actual coordinate position
-                     [ATTR_triangle_pos].format = SG_VERTEXFORMAT_FLOAT3,
-                     // get the colour
-                     [ATTR_triangle_colour].format = SG_VERTEXFORMAT_FLOAT3,
-                 }}});
+                     [ATTR_model_position].format = SG_VERTEXFORMAT_FLOAT3,
+                     // get the normal direction for lighting
+                     [ATTR_model_normal].format = SG_VERTEXFORMAT_FLOAT3,
+                 }},
+      // tell sokol that we are using 32-bit unsigned integers for our indices
+      .index_type = SG_INDEXTYPE_UINT32,
+  });
 
   // update the state
   // INFO: again my formatter is really weird WTF is this?
@@ -168,28 +172,28 @@ void frame(void) {
   // bind the GPU buffer to handle these vertex data
   sg_apply_bindings(&state.bindings);
 
-  // sokol-shdc generated triangle params through 'triangle.glsl' uniform
-  triangle_params_t params = {0};
+  // sokol-shdc generated model params through 'model.glsl' uniform
+  model_params_t params = {0};
 
   // combine all the "populated" matrix into one final matrix to pass to shader
   // basically matrix multiplication is going to happen here
   // INFO: multiplies n number of matrices, given array of matrices of length n
   glm_mat4_mulN((mat4 *[]){&proj_mat, &view_mat, &model_mat}, 3, params.mvp);
 
+  // copy the model matrix for normal transformation in the vertex shader
+  // INFO: normals must use the model matrix only, not the full MVP
+  glm_mat4_copy(model_mat, params.model);
+
   // apply and use the uniforms so as to pass the data to the GPU
-  sg_apply_uniforms(UB_triangle_params, &SG_RANGE(params));
+  sg_apply_uniforms(UB_model_params, &SG_RANGE(params));
 
   // actually render the thing on our screen
   sg_draw(
 
       // base element
       0,
-      // number of items
-
-      // NOTE: even though that we have 9 elements in total in our array
-      // remember that we have x, y and z ==> 3 actual usable data
-
-      3,
+      // number of indices to draw ( each triangle has 3 indices )
+      state.mesh.index_count,
       // number of intances
       1);
 
@@ -202,6 +206,9 @@ void frame(void) {
 
 void cleanup(void) {
   // function to cleanup resources at the end of our program
+
+  // free the mesh's CPU arrays and GPU buffers
+  mesh_destroy(&state.mesh);
 
   // shutdown / kill the instance of our sokol graphics
   sg_shutdown();
