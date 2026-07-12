@@ -12,6 +12,8 @@
 #include "dependencies/sokol/sokol_glue.h"
 // include 'clgm' higly optimsed math library for 2D and 3D stuff
 #include "cglm/cglm.h"
+// include c's standard math library for cosf, sinf etc
+#include <math.h>
 // include our newly created 'model.h' file
 #include "model.h"
 // include our mesh structure for dynamic loading
@@ -36,6 +38,17 @@ static struct {
   model triangle;
   // define our model's mesh --> actual loaded geometry from the `.obj` file
   mesh_t mesh;
+
+  // define our camera's state --> to be used with events ( mouse events )
+  /*
+   * - `camera_distance`: how far the camera is from the "origin"
+   * - `camera_azimuth`: basically think of it like a compass --> angle around
+   * the y-axis
+   * - `camera_elevation`: basically angle of elevetion from the horizon
+   */
+  float camera_distance;
+  float camera_azimuth;
+  float camera_elevation;
 } state;
 
 // function related to `sapp_run` and `sapp_desc`
@@ -49,6 +62,11 @@ void init(void) {
 
   // setup the triangle's model default positioning, rotation and scaling
   state.triangle = model_defaults();
+
+  // initialise camara distance and angles ==> vertical and horizontal angles
+  state.camera_distance = 30.0f;
+  state.camera_azimuth = 0.0f;
+  state.camera_elevation = 0.3f;
 
   // load our `.obj` file from the hard drive and turn it into a mesh for the
   // GPU INFO: default is `test.obj` ( Suzanne from Blender )
@@ -108,16 +126,19 @@ void frame(void) {
   // function to display at each render state ==> called once every frame
 
   // move the triangle model back along the z-axis for the duration of the frame
-  // INFO: this makes the model goes back
+  // INFO: this makes the model goes back automatically
+  // WARNING: currently disabled as orbit controls are active
   // state.triangle.position[2] -= sapp_frame_duration();
 
   // rotate the triangle model along the y-axis for the duration of the frame
-  // INFO: this makes the model rotate
-  state.triangle.rotation[1] -= sapp_frame_duration();
+  // INFO: this makes the model rotate automatically
+  // WARNING: currently disabled as orbit controls are active
+  // state.triangle.rotation[1] -= sapp_frame_duration();
 
   // scale the triangle model along the x-axis for the duration of the frame
-  // INFO: this makes the model bigger
-  state.triangle.scale[0] += 0.01f * sapp_frame_duration();
+  // INFO: this makes the model bigger automatically
+  // WARNING: currently disabled as orbit controls are active
+  // state.triangle.scale[0] += 0.01f * sapp_frame_duration();
 
   // define our 4x4 matrices for 3D "rendering"
   mat4 model_mat, view_mat, proj_mat;
@@ -137,7 +158,14 @@ void frame(void) {
    *
    */
   // INFO: see OpenGL's coordinate system to learn more
-  vec3 eye = {0.0f, 10.0f, 40.0f};
+  // convert spherical coordinates ( distance, azimuth, elevation ) to cartesian
+  vec3 eye = {
+      state.camera_distance * cosf(state.camera_elevation) *
+          sinf(state.camera_azimuth),
+      state.camera_distance * sinf(state.camera_elevation),
+      state.camera_distance * cosf(state.camera_elevation) *
+          cosf(state.camera_azimuth),
+  };
 
   // define the place where the camera is going to be looking at
   /*
@@ -146,7 +174,7 @@ void frame(void) {
    * Picture showing Right-Handed ( and Left Handed ):
    * https://perry.cz/articles/ProjectionMatrix.xhtml
    */
-  vec3 center = {0.0f, 0.0f, -1.0f};
+  vec3 center = {0.0f, 0.0f, 0.0f};
 
   // where does our y-axis is located
   // INFO: in this case its basically like in the image above ( see link )
@@ -229,8 +257,76 @@ void cleanup(void) {
 void event(const sapp_event *event) {
   // function to handle event handling like mouse and keyboard
 
-  // INFO: adding this to suppress `clangd` / `make` warnings
-  (void)event;
+  // track whether we are currently dragging the mouse to orbit the camera
+  static bool dragging = false;
+
+  // mouse events for orbiting the camera around the model
+  switch (event->type) {
+
+  // mouse button pressed ( mouse 1 )
+  case SAPP_EVENTTYPE_MOUSE_DOWN:
+    // start dragging when left mouse button is pressed
+    if (event->mouse_button == SAPP_MOUSEBUTTON_LEFT)
+      dragging = true;
+    // reset camera to default position when right mouse button is pressed
+    if (event->mouse_button == SAPP_MOUSEBUTTON_RIGHT) {
+      state.camera_distance = 30.0f;
+      state.camera_azimuth = 0.0f;
+      state.camera_elevation = 0.3f;
+    }
+    break;
+
+  // mouse button released ( mouse 1 )
+  case SAPP_EVENTTYPE_MOUSE_UP:
+    // stop dragging when left mouse button is released
+    if (event->mouse_button == SAPP_MOUSEBUTTON_LEFT)
+      dragging = false;
+    break;
+
+  // mouse move
+  case SAPP_EVENTTYPE_MOUSE_MOVE:
+    // while dragging, rotate the camera based on mouse movement
+    if (dragging) {
+      /*
+       * INFO
+       *
+       * - `camera_azimuth`:
+       *   - if using `-=` ==> moving the mouse in direction moves model
+       * accordingly
+       *   - if using `+=` ==> moving the mouse in direction moves model
+       * invertedly
+       *
+       * - `camera_elevation`:
+       *   - if using `+=` ==> moving the mouse in direction moves model
+       * accordingly
+       *   - if using `-=` ==> moving the mouse in direction moves model
+       * invertedly
+       */
+      state.camera_azimuth -= event->mouse_dx * 0.005f;
+      state.camera_elevation += event->mouse_dy * 0.005f;
+
+      // clamp elevation to prevent camera flipping upside down
+      if (state.camera_elevation > 1.5f)
+        state.camera_elevation = 1.5f;
+
+      if (state.camera_elevation < -1.5f)
+        state.camera_elevation = -1.5f;
+    }
+    break;
+
+  case SAPP_EVENTTYPE_MOUSE_SCROLL:
+    // scroll to zoom in / out
+    state.camera_distance -= event->scroll_y * 1.5f;
+
+    // prevent the camera from going through the near clipping plane
+    if (state.camera_distance < 1.0f)
+      state.camera_distance = 1.0f;
+    break;
+
+  // we don't need to do / handle anything here
+  default:
+    break;
+  }
 };
 
 // our main function
