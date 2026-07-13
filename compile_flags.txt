@@ -1,3 +1,5 @@
 -std=c2x
+-Isrc
+-I.
 -Idependencies/cglm/include
 -Idependencies/fast_obj

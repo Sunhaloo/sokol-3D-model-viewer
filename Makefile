@@ -13,14 +13,14 @@ else
 endif
 
 # our neccessary includes for 'cglm' and 'fast_obj'
-INCLUDES = -Idependencies/cglm/include -Idependencies/fast_obj
+INCLUDES = -Isrc -I. -Idependencies/cglm/include -Idependencies/fast_obj
 
 # local development ==> compiling, running and deleting
 program: compile run clean
 
 # compile the program according to system
 compile:
-	@$(CC) main.c model.c mesh.c object_loader.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
+	@$(CC) src/main.c src/model.c src/mesh.c src/object_loader.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
 
 # compile the program
 run:
@@ -32,4 +32,4 @@ clean:
 
 # to compile our shader
 shader:
-	@./sokol-shdc --input assets/shaders/model.glsl --output model_shader.h --slang glsl430:hlsl5:metal_macos
+	@./sokol-shdc --input assets/shaders/model.glsl --output src/model_shader.h --slang glsl430:hlsl5:metal_macos
