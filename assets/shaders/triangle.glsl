@@ -3,6 +3,13 @@
 @ctype mat4 mat4
 
 /*
+  WARNING:
+
+ Since we switched to loading models using actual object files this `triangle.glsl` file is NOT being used.
+ But I am leaving this here so that I can refer to it as a "note"!
+*/
+
+/*
    NOTE: some simple notes
 
    - vertex shader is responsible for placing "data" / coordinates on screen

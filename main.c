@@ -10,8 +10,8 @@
 #include "dependencies/sokol/sokol_gfx.h"
 // include the sokol header file --> helper functions for 'sokol_gfx.h' file
 #include "dependencies/sokol/sokol_glue.h"
-// include 'clgm' higly optimsed math library for 2D and 3D stuff
-#include "cglm/cglm.h"
+// include c's standard IO for fprintf and stderr
+#include <stdio.h>
 // include c's standard math library for cosf, sinf etc
 #include <math.h>
 // include our newly created 'model.h' file
@@ -331,12 +331,19 @@ void event(const sapp_event *event) {
 
 // our main function
 int main(int argc, char *argv[]) {
+
+  // require a model file path as the first command-line argument
+  if (argc < 2) {
+    // display this little message if the user did not provide any model file
+    fprintf(stderr, "\t == Usage: %s <model.obj> == \n", argv[0]);
+    return 1;
+  }
+
+  // get the actual path of the model passed through
+  obj_path = argv[1];
+
   // initialise our application ==> windowing, GPU setup...
   // INFO: my formatter is formatting weirdly x_x
-
-  // use first command-line arg as model path, or default if none given
-  obj_path = (argc > 1) ? argv[1] : "assets/models/test.obj";
-
   sapp_run(&(sapp_desc){// setup main point
                         .init_cb = init,
                         .frame_cb = frame,
