@@ -33,6 +33,7 @@ status: HOLD
 	- [[#Mesh]]
 	- [[#Object Loader]]
 	- [[#Remove Hard-Coded Stuff]]
+- [[#The Full View]]
 
 ---
 
@@ -1998,6 +1999,63 @@ flowchart TB
 > - Argument Passing so that we can load object files with something like `program model.obj`
 > 
 > But for now I think I am happy with where I have come from... *Man, I did not even know what a shader was*!
+
+# Further Coding
+
+## Mouse Events
+
+So I thought that I was completely done but then when trying out different models / `.obj` files. I see that something affects us very much... Its the following code:
+
+```C
+  /*
+   * define the camera position ==> at the origin in the middle of our screen
+   * additionally, move it back along the z-axis to be able to see the model
+   *
+   */
+  // INFO: see OpenGL's coordinate system to learn more
+  vec3 eye = {0.0f, 0.0f, 10.0f};
+```
+
+Okay, this is the actual position of where our *camera* / *eye* is found inside the 3D-space of our *program*. But given that some models are so huge ( *that's what she said* ); we are able to see the *insides* of these models instead of the seeing the actual model outside.
+
+This, is the reason that I want to add mouse events so that we are able to **scroll** *into* and *out* of the models so that the user is able to see the desired model.
+
+> [!INFO] Resource(s)
+> 
+> - Sokol Mouse Events Official Examples: https://github.com/floooh/sokol-samples/blob/master/sapp/events-sapp.cc
+> - Azimuth Angle:
+> 	- https://en.wikipedia.org/wiki/Azimuth
+> 	- https://www.reddit.com/r/explainlikeimfive/comments/vhu3hj/eli5_what_is_the_simplest_explanation_of_azimuth/
+
+### What Do We Need To Do?
+
+1. We need to first add a *state* for our camera
+2. We need to set an initial camera position / *zoom*
+3. Handle the mouse scroll wheel event inside our `event` function
+4. Then update our `eye`'s z-axis value
+
+> [!NOTE]
+> Please do refer to the actual `main.c` file as again, I don't want to further increase the length of this markdown file.
+
+### Adding Mouse Orbiting Movements
+
+This I needed help from Claude and it gave me the formulas as to how we should calculate the *spherical* coordinates system "*thingy*".
+
+- This is what it came up with:
+
+```C
+  // INFO: see OpenGL's coordinate system to learn more
+  // convert spherical coordinates ( distance, azimuth, elevation ) to cartesian
+  vec3 eye = {
+      state.camera_distance * cosf(state.camera_elevation) *
+          sinf(state.camera_azimuth),
+      state.camera_distance * sinf(state.camera_elevation),
+      state.camera_distance * cosf(state.camera_elevation) *
+          cosf(state.camera_azimuth),
+  };
+```
+
+Then, we simply updated our `event` function in order to make use of it!
 
 ---
 
