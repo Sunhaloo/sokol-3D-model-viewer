@@ -22,7 +22,9 @@ jobs:
           submodules: recursive
 
       - name: Install clang and other required dependencies for code compilation
-        run: sudo apt-get install -y clang libx11-dev libxi-dev libxcursor-dev libasound2-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing clang libx11-dev libxi-dev libxcursor-dev libasound2-dev
 
       - name: Compile the source code into proper binary
         run: make compile
@@ -62,6 +64,7 @@ jobs:
           install: >-
             mingw-w64-ucrt-x86_64-clang
             mingw-w64-ucrt-x86_64-make
+            make
 
       - name: Compile the source code into proper executable ( through MSYS2 )
         shell: msys2 {0}
