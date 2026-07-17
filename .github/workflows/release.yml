@@ -1,6 +1,10 @@
 # name of the workflow
 name: Release
 
+# basically the build outputs says that `Node.js 20` is deprecated
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # event for the workflow to act on
 on:
   # each program release
