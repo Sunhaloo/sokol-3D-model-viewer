@@ -18,8 +18,9 @@ INCLUDES = -Isrc -I. -Idependencies/cglm/include -Idependencies/fast_obj
 # local development ==> compiling, running and deleting
 program: compile run clean
 
-# compile the program according to system
+# create `build` directory locally and compile the program according to system
 compile:
+	@mkdir -p build
 	@$(CC) src/main.c src/model.c src/mesh.c src/object_loader.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
 
 # compile the program
