@@ -1,0 +1,81 @@
+# name of the workflow
+name: Release
+
+# event for the workflow to act on
+on:
+  # each program release
+  release:
+    types: [published]
+
+# jobs run by the workflow
+jobs:
+  # linux build
+  build-linux-release:
+    runs-on: ubuntu-latest
+
+    # steps for the linux virtual machine / runner to take
+    steps:
+      - name: Clone repository code onto GitHub's virtual runner
+        uses: actions/checkout@v7
+        with:
+          # as we have our extenal "dependencies" repositories
+          submodules: recursive
+
+      - name: Install clang and other required dependencies for code compilation
+        run: sudo apt-get install -y clang libx11-dev libxi-dev libxcursor-dev libasound2-dev
+
+      - name: Compile the source code into proper binary
+        run: make compile
+
+        # rename the Linux binary so as to help people differ from the Windows build
+      - name: Rename binary for release
+        run: mv build/program build/sokol-3d-model-viewer-linux
+
+      - name: Upload Linux binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          # the output as "downloadable" as specified in our `Makefile`
+          # added "tests" model files so that the user can play with it
+          files: |
+            build/sokol-3d-model-viewer-linux
+            assets/models/koenigsegg.obj
+            assets/models/porsche_911_GT2.obj
+
+  # windows build
+  build-windows-release:
+    runs-on: windows-latest
+
+    # steps for the windows virtual machine / runner to take
+    steps:
+      - name: Clone repository code onto GitHub's virtual runner
+        uses: actions/checkout@v7
+        with:
+          # as we have our extenal "dependencies" repositories
+          submodules: recursive
+
+      - name: Install / Use MSYS2 on Windows system through official action
+        uses: msys2/setup-msys2@v2
+        # following this specific code block: https://github.com/msys2/setup-msys2#default-shell
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-make
+
+      - name: Compile the source code into proper executable ( through MSYS2 )
+        shell: msys2 {0}
+        run: make compile
+
+        # rename the Windows executable so as to help people differ from the Linux build
+      - name: Rename binary for release
+        shell: msys2 {0}
+        run: mv build/program.exe build/sokol-3d-model-viewer-windows.exe
+
+      - name: Upload Windows executable to release
+        uses: softprops/action-gh-release@v2
+        with:
+          # the output as "downloadable" as specified in our `Makefile`
+          # note that "tests" model files are only at Linux stage and therefore no need here
+          files: |
+            build/sokol-3d-model-viewer-windows.exe

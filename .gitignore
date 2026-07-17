@@ -3,9 +3,5 @@
 *.out
 *.app
 
-# intermediate objects
-*.o
-*.obj
-
 # build folders
 build/
