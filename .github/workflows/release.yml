@@ -13,6 +13,9 @@ jobs:
   build-linux-release:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     # steps for the linux virtual machine / runner to take
     steps:
       - name: Clone repository code onto GitHub's virtual runner
@@ -24,7 +27,7 @@ jobs:
       - name: Install clang and other required dependencies for code compilation
         run: |
           sudo apt-get update
-          sudo apt-get install -y --fix-missing clang libx11-dev libxi-dev libxcursor-dev libasound2-dev
+          sudo apt-get install -y --fix-missing clang libx11-dev libxi-dev libxcursor-dev libasound2-dev libgl-dev
 
       - name: Compile the source code into proper binary
         run: make compile
@@ -46,6 +49,9 @@ jobs:
   # windows build
   build-windows-release:
     runs-on: windows-latest
+
+    permissions:
+      contents: write
 
     # steps for the windows virtual machine / runner to take
     steps:
