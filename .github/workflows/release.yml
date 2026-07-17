@@ -17,6 +17,7 @@ jobs:
   build-linux-release:
     runs-on: ubuntu-latest
 
+    # change the permission so that we are able to save our files
     permissions:
       contents: write
 
@@ -54,6 +55,7 @@ jobs:
   build-windows-release:
     runs-on: windows-latest
 
+    # change the permission so that we are able to save our files
     permissions:
       contents: write
 

@@ -34,6 +34,10 @@ status: HOLD
 	- [[#Object Loader]]
 	- [[#Remove Hard-Coded Stuff]]
 - [[#The Full View]]
+- [[#Further Coding]]
+	- [[#Mouse Events]]
+	- [[#GitHub Actions - Release Program]]
+		- [[#Building The Release YAML File]]
 
 ---
 
@@ -2056,6 +2060,196 @@ This I needed help from Claude and it gave me the formulas as to how we should c
 ```
 
 Then, we simply updated our `event` function in order to make use of it!
+
+## GitHub Actions - Release Program
+
+So given that the project is near completion... Well, since I used GitHub Actions to create the executables my shitty [mouse-c-py](https://github.com/Sunhaloo/mouse-c-py) project; I am now spoiled and I think that all my projects going further should make use of GitHub Actions in some ways ( *automatic code reviews, code testing and building and deployments* ).
+
+But compared to the above mentioned project; whereby I was fed up with it and wanted to complete it as fast as possible. This meant that I use Claude at the end of the day to basically *one-shot* the `release.yml` file for me.
+
+> [!WARNING]
+> Yes, I strayed away for my ideal of using AI / LLMs to help me instead of doing the work for... But come on do cut me some slack as I was fed up with my entire life at that point!
+
+So compared to the *mistake* that I made; I want to now try to learn the actual basics of it well and I realise something as a complete beginner to things like GitHub Actions, DevOps and such.
+
+> "*I don't understand the docs very well...*"
+
+Hence, this is something that you learn more about it the more you do it; I am not saying that I don't understand it at all. I am just saying that it will take time for me ( *and I think for every beginner that is NOT FUCKING VIBE CODING* ) to understand it.
+
+I then asked Claude to provide me with some initial resources and links whereby I can read more about it and it gave me these:
+
+- https://docs.github.com/en/actions/get-started
+
+Then I basically went around following the basics and I did found things that are really interesting like what runners are available and the variables that are available to us:
+
+- https://github.com/actions/runner-images
+- https://docs.github.com/en/actions/reference/workflows-and-actions/variables
+
+Then I told Claude ( *and vice-versa* ) that I am going to try to make an initial draft for it and then I will provide it to review it.
+
+Given that I already had a the `release.yml` file and with the newly obtained ( *little but still newly obtained* ) knowledge from the documentation I set out to make the first initial draft.
+
+## Building The Release YAML File
+
+In this part of the note, I want to explain [me, myself and I](https://youtu.be/K533gW3boIY?si=Yuo1kvH-IwXdzgiN) what I did to make it work.
+
+> Let's get started!
+
+- Create the hidden `.github` directory with the `release.yml` file:
+
+```bash
+# create the release yaml file at the correct path
+mkdir -p .github/workflows && touch .github/workflows/release.yml
+```
+
+> [!NOTE]
+> It's basically obvious that I am not going to explain everything like `name`. I am just going to explain the things that "*I*" did differently from the `release.yml` of the mouse-c-py project.
+> 
+> Additionally, all the comparison that I am going to be making is basically made against the `release.yml` file of my mouse-c-py project.
+> 
+> > As it was the first time that I use GitHub Actions!
+> 
+> Hence, if you think that my wording below are feeling a bit like *comparison and contrast*. Its because I am actually comparing it to the mouse-c-py project's equivalent.
+
+- Event on which to act upon on:
+
+```yml
+# event for the workflow to act on
+on:
+  # each program release
+  release:
+    types: [published]
+```
+
+Compared to our tags system ( *in mouse-c-py* ) whereby its going to automatically start building when we locally create and push said *locally created* tag to the remote repository. Here, we are going to be manually have to go to the GitHub repository in our browser and *release* a 'release'...
+
+Now, is that the best way to do that... I don't really know and for this project I don't really care. Claude was telling me about the difference versus each other but given that I saw something new and shiny I went with the *new* method ( *it's new for me BTW...* ).
+
+- Creation of Linux Jobs:
+
+> A workflow is triggered by one or more events and consists of one or more jobs.
+
+In this case we are building for both Linux and Windows therefore, in our Linux virtual machine / *runner*... We obviously won't be able to build for Windows ( *what the fuck am I saying... You know this already* ).
+
+Hence, let's first focus on our Linux job!
+
+```yml
+  # linux build
+  build-linux-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    # steps for the linux virtual machine / runner to take
+    steps:
+      - name: Clone repository code onto GitHub's virtual runner
+        uses: actions/checkout@v7
+        with:
+          # as we have our extenal "dependencies" repositories
+          submodules: recursive
+
+      - name: Install clang and other required dependencies for code compilation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing clang libx11-dev libxi-dev libxcursor-dev libasound2-dev libgl-dev
+
+      - name: Compile the source code into proper binary
+        run: make compile
+
+        # rename the Linux binary so as to help people differ from the Windows build
+      - name: Rename binary for release
+        run: mv build/program build/sokol-3d-model-viewer-linux
+
+      - name: Upload Linux binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          # the output as "downloadable" as specified in our `Makefile`
+          # added "tests" model files so that the user can play with it
+          files: |
+            build/sokol-3d-model-viewer-linux
+            assets/models/koenigsegg.obj
+            assets/models/porsche_911_GT2.obj
+```
+
+First up given that we are going to be *writing* stuff to the virtual machine, we are going to have to change our `permission` and we did do that with:
+
+```yml
+    permissions:
+      contents: write
+```
+
+Then using the `actions/checkout@v7` GitHub Action, we are able to basically `clone` our / the repository onto the virtual runner so that we are able to actual compile our source code:
+
+```yml
+      - name: Clone repository code onto GitHub's virtual runner
+        uses: actions/checkout@v7
+        with:
+          # as we have our extenal "dependencies" repositories
+          submodules: recursive
+```
+
+Given that we also have submodules in our repository; we are going to have to add `submodules: recursive` so that it also clones these repositories / dependencies onto the virtual machines.
+
+And hence, before running our lovely `make compile` command, well we need to install all the compilers like `clang` and more so that we don't have any issues when it comes to the compilation process and therefore, we have this:
+
+> Now joke, this was *given* by Claude as I just wrote `sudo apt install -y clang` there...
+
+```yml
+      - name: Install clang and other required dependencies for code compilation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing clang libx11-dev libxi-dev libxcursor-dev libasound2-dev libgl-dev
+```
+
+Then obviously we are going to have to compile our source code and this is where you have the following parts. Now, I have also decided to **rename** the output as most GitHub Repositories have a way to differentiate between Windows and Linux / Unix builds.
+
+```yml
+      - name: Compile the source code into proper binary
+        run: make compile
+
+        # rename the Linux binary so as to help people differ from the Windows build
+      - name: Rename binary for release
+        run: mv build/program build/sokol-3d-model-viewer-linux
+```
+
+Finally, we have to upload using another GitHub Action and thereore these built binary files, plus given that you need to provide an object file as argument for the program to run. I also added to upload 2 object files so that the user can easily test my program.
+
+```yml
+      - name: Upload Linux binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          # the output as "downloadable" as specified in our `Makefile`
+          # added "tests" model files so that the user can play with it
+          files: |
+            build/sokol-3d-model-viewer-linux
+            assets/models/koenigsegg.obj
+            assets/models/porsche_911_GT2.obj
+```
+
+---
+
+Well this is basically what is happening on the Windows side but instead of using a Linux runner we are using a Windows runner and we are also downloading [MSYS2](https://www.msys2.org/) to build the program from the source code to the executable...
+
+But there is something interesting there is already a MSYS2 *GitHub Action* and instead of going through things like `choco` to install 'MINGW' and other required tooling... We simply needed to do this:
+
+```yml
+      - name: Install / Use MSYS2 on Windows system through official action
+        uses: msys2/setup-msys2@v2
+        # following this specific code block: https://github.com/msys2/setup-msys2#default-shell
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-make
+            make
+```
+
+Then we simply compile through / inside the `mysys2` environment and simply rename and upload our Windows Executable!
+
+> [!NOTE]
+> As always for more information please do checkout the actual `release.yml` file over at the GitHub Repository to view it in *4K*...
 
 ---
 
