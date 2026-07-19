@@ -2251,6 +2251,75 @@ Then we simply compile through / inside the `mysys2` environment and simply rena
 > [!NOTE]
 > As always for more information please do checkout the actual `release.yml` file over at the GitHub Repository to view it in *4K*...
 
+# Miscellaneous
+
+## Update Makefile To Pass Arguments
+
+Given that now we have to run ( *local development* ) do the following to be able to make our program actually work...
+
+```bash
+# compile the program
+make compile
+
+# I copy the object files found inside the 'assets/models' folder to local 'build' folder
+
+# therefore run program using
+./program <model_name>.obj
+```
+
+But I know that we are able to pass stuff as argument automatically with Makefiles because currently running our little `make` command is going to run in this:
+
+```console
+	== Usage: ./build/program <model.obj> == 
+
+make: *** [Makefile:31: run] Error 1
+```
+
+> [!NOTE]
+> Given that I only know the basics and basics and basics and basics of `Makefile`s... I am going to use the help of Claude to show me how to do it because as of today. LLMs are becoming more and more like search engines.
+> 
+> Nevertheless, what Claude is saying is true because I did got out of my way to search for it *normally*
+> 
+> - Stack Overflow Link: https://stackoverflow.com/questions/2826029/passing-additional-variables-from-command-line-to-make
+> 
+> > What is normal in today's world also...
+
+- Add the following to line to our `Makefile` just above our `program` target:
+
+```bash
+# to be able to pass models as arguments else provide at command line
+MODEL ?= assets/models/koenigsegg.obj
+```
+
+- Update our `run` target by *passing* the `MODEL` as argument:
+
+```bash
+# run compiled the program
+run:
+	@./$(OUTPUT) $(MODEL)
+```
+
+### Using New Makefile
+
+Therefore, instead of looking at the *error* / *warning*... Simply using the `make` command; its going to open up the window to be able to view the `koenigsegg.obj` object file.
+
+If you want to **override** the default model *during development* and to instead use `porsche_911_GT2.obj` or another model added to the `assets/models` folder... Well you are going to have to do something like this:
+
+```bash
+# override the model by changing the `MODEL` "variable"
+make MODEL=/path/to/any/file.obj
+```
+
+Therefore, if you would want to use the `porsche_911_GT2.obj` model file; then would you do something like this in your terminal:
+
+```bash
+# use use porsche_911_GT2 model instead of default koenigsegg
+make MODEL=assets/models/porsche_911_GT2.obj
+```
+
+> [!NOTE]
+> We are basically able to achieve this through the use of the `?=` "*operator*" inside of the `Makefile`.
+
 ---
 
 # Socials

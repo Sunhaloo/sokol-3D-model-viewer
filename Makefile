@@ -15,6 +15,9 @@ endif
 # our neccessary includes for 'cglm' and 'fast_obj'
 INCLUDES = -Isrc -I. -Idependencies/cglm/include -Idependencies/fast_obj
 
+# to be able to pass models as arguments else provide at command line
+MODEL ?= assets/models/koenigsegg.obj
+
 # local development ==> compiling, running and deleting
 program: compile run clean
 
@@ -23,9 +26,9 @@ compile:
 	@mkdir -p build
 	@$(CC) src/main.c src/model.c src/mesh.c src/object_loader.c dependencies/fast_obj/fast_obj.c -Wall -Wextra $(INCLUDES) $(LIBS) -o $(OUTPUT)
 
-# compile the program
+# run compiled the program
 run:
-	@./$(OUTPUT)
+	@./$(OUTPUT) $(MODEL)
 
 # delete / remove any leftover compiled programs ( based on system )
 clean:

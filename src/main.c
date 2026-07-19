@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
   // require a model file path as the first command-line argument
   if (argc < 2) {
     // display this little message if the user did not provide any model file
-    fprintf(stderr, "\t == Usage: %s <model.obj> == \n", argv[0]);
+    fprintf(stderr, "\t == Usage: %s <model.obj> == \n\n", argv[0]);
     return 1;
   }
 
