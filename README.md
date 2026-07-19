@@ -1,15 +1,3 @@
----
-id: Sokol 3D Model Viewer README
-aliases: README file for sokol-3D-model-viewer project
-tags:
-  - C
-  - linux
-  - windows
-author: S.Sunhaloo
-date: 2026-07-19
-status: In-Progress
----
-
 # Sokol 3D Model Viewer
 
 A 3D model viewer that can load an object file `.obj` and display them.
@@ -74,7 +62,7 @@ By the 3rd video I was able to learn a lot of things and takes lots of notes so 
 
 As of the 19th of July 2026, he has yet to complete the project.
 
-> I think he **abandon** the problem and also on _his_ repository the last commit was 10 months ago!
+> I think he **abandoned** the project and also on _his_ repository the last commit was 10 months ago!
 
 Given the amount of fun that I was having when building it... I really wanted to complete the _whole_ project and be to also be able to show people what "_I_" have made ( _again would not be possible without the YouTube videos by Coding with Sphere_ ).
 
@@ -82,17 +70,17 @@ But I was left a bit on my own here and I really wanted to make this work...
 
 ## Using Large Language Models
 
-Similar to how my _semi-failed_ [mouse-c-py]() project... I was originally just using Claude as a search engine to learn more about graphics programming terms and concepts in more detail ( _as the coding part was already been shown in the videos_ ).
+Similar to how my _semi-failed_ [mouse-c-py](https://github.com/Sunhaloo/mouse-c-py) project... I was originally just using Claude as a search engine to learn more about graphics programming terms and concepts in more detail ( _as the coding part was already been shown in the videos_ ).
 
 Nevertheless, at the end of the third episode... I asked Claude to also help me with the implementation so that I am able to continue and complete the project.
 
 Now, if you know me... You know I like to type a lot with my _split, 40%, mechanical_ [Corne Keyboard](https://github.com/foostan/crkbd)... This is why I am still in the stone age and write each line of code by myself ( _when I completely know what I am doing_ ).
 
-Given that this is based on C / C++; I would definitely need some help in order to complete it.
+Given that this is based on C; I would definitely need some help in order to complete it.
 
 Long story short, Claude help me a bunch with _infrastructural_ decision like building my own object [parser](https://en.wikipedia.org/wiki/Parsing) versus using a pre-existing one for simplicity sake.
 
-> Again, most if now all of my learning are found inside the `learning/Making A 3D Model Viewer With Sokol.md` file.
+> Again, most if not all of my learning are found inside the `learning/Making A 3D Model Viewer With Sokol.md` file.
 
 ### "Improving The Project"
 
@@ -208,7 +196,7 @@ Here are the followings _keybindings_ to help you show move the model and "_navi
 ## Somethings To Consider
 
 1. It does **not** display any _colour_ and everything is grey ( _see `assets/shader/model.glsl` file_ )
-2. Some object is **not** correctly displayed ( _I don't plan to solve the issue also_ )
+2. Some object is **not** correctly displayed due to complex geometry or missing _normals_ ( _I don't plan to solve the issue also_ )
 
 ---
 
@@ -242,7 +230,7 @@ Here are the followings _keybindings_ to help you show move the model and "_navi
 
 - Windows Machine ( _preferably Windows 11_ )
 - [MSYS2](https://www.msys2.org/):
-  - [`clang`](https://packages.msys2.org/packages/mingw-w64-x86_64-clang)
+  - [`clang`](https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-clang)
   - [`mingw-w64-make`](https://packages.msys2.org/base/mingw-w64-make) or simply [`make`](https://packages.msys2.org/base/make)
 - `sokol-shdc` Windows Executable: <https://github.com/floooh/sokol-tools-bin/tree/master/bin/win32>
 
@@ -299,4 +287,3 @@ make clean
 
 S.Sunhaloo
 Thank You!
-
