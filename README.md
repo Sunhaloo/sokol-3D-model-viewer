@@ -248,9 +248,9 @@ git clone --recurse-submodules git@github.com:Sunhaloo/sokol-3D-model-viewer.git
 - `sokol-shdc` Linux Binary: <https://github.com/floooh/sokol-tools-bin/tree/master/bin/linux>
 
 > [!NOTE]
-> The reason that I used `clang` instead of my usual `gcc` is because I went and research ( _its in my notes_ ) about both of them...
+> The reason that I used `clang` instead of my usual `gcc` is because I went and research ( _its in my notes_ ) about both of them.
 >
-> I have been using `gcc` all my life and I just wanted to "_taste_" `clang`
+> I have been using `gcc` all my life and I just wanted to "_taste_" `clang`...
 
 ## Windows Development
 
