@@ -204,6 +204,32 @@ Here are the followings _keybindings_ to help you show move the model and "_navi
 
 > IDK... If you want to learn more from this _shitty_ project or make it better!
 
+Before we get to the setup for each operating system below... I need you tell you how to clone this repository.
+
+Why? Because I learned how to use Git Submodules and the `clone` command is a bit different than just a simple `git clone <url>` command.
+
+## Cloning Project
+
+To clone the project and also populate the other submodules found in the `dependencies` folder, simply run the following command like so:
+
+```bash
+# clone using 'https'
+git clone --recurse-submodules https://github.com/Sunhaloo/sokol-3D-model-viewer.git
+
+# clone using 'ssh'
+git clone --recurse-submodules git@github.com:Sunhaloo/sokol-3D-model-viewer.git
+```
+
+> [!WARNING]
+> If you have already clone using the simple `git clone` command... You should see that the folders inside the `dependencies` directory have nothing in them.
+>
+> Therefore, to fix / populate those submodules... You are going to have to run this additional command in order to properly clone the entire repository / project.
+>
+> ```bash
+> # populate the actual git submodules found inside the `dependencies` directory
+> git submodule update --init
+> ```
+
 ## Linux Development
 
 > [!IMPORTANT]
